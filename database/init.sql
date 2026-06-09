@@ -145,15 +145,15 @@ INSERT INTO `categories` (`name`, `icon`, `sort_order`) VALUES
 -- 初始数据：示例商品
 -- ========================================
 INSERT INTO `products` (`name`, `description`, `price`, `original_price`, `stock`, `sales`, `main_image`, `category_id`, `status`) VALUES
-('iPhone 15 Pro Max 256GB', '苹果最新旗舰手机，A17 Pro芯片，钛金属设计，4800万像素主摄', 9999.00, 10999.00, 500, 1234, 'https://picsum.photos/seed/iphone15/400/400', 1, 1),
-('MacBook Pro 14英寸 M3 Pro', 'Apple M3 Pro芯片，18GB统一内存，512GB固态硬盘，Liquid Retina XDR显示屏', 14999.00, 16499.00, 200, 856, 'https://picsum.photos/seed/macbook/400/400', 2, 1),
-('华为 Mate 60 Pro', '麒麟9000S芯片，超可靠玄武架构，卫星通话，XMAGE影像', 6999.00, 7999.00, 300, 2341, 'https://picsum.photos/seed/huawei/400/400', 1, 1),
-('Sony WH-1000XM5 头戴式耳机', '行业领先降噪，30小时续航，多点连接，高解析度音频', 2499.00, 2999.00, 150, 678, 'https://picsum.photos/seed/sony/400/400', 1, 1),
-('戴尔 U2723QE 4K显示器', '27英寸IPS Black技术，USB-C 90W供电，HDR400，99% sRGB', 3999.00, 4599.00, 100, 432, 'https://picsum.photos/seed/dell/400/400', 2, 1),
-('海尔冰箱 BCD-510WDPF', '510升对开门，风冷无霜，变频压缩机，智能控温', 3299.00, 3999.00, 80, 567, 'https://picsum.photos/seed/haier/400/400', 3, 1),
-('Nike Air Jordan 1 Retro High', '经典复刻篮球鞋，优质皮革鞋面，Air-Sole缓震', 1299.00, 1499.00, 200, 890, 'https://picsum.photos/seed/nike/400/400', 4, 1),
-('兰蔻小黑瓶精华液 50ml', '第二代小黑瓶，微生态科技，修护肌肤屏障', 799.00, 980.00, 300, 1567, 'https://picsum.photos/seed/lancome/400/400', 5, 1),
-('三只松鼠坚果大礼包', '每日坚果混合装，14袋/盒，健康零食礼盒', 89.90, 129.90, 1000, 5678, 'https://picsum.photos/seed/nuts/400/400', 6, 1),
-('小米14 Ultra', '骁龙8 Gen3，徕卡光学Summilux镜头，5000mAh电池', 5999.00, 6499.00, 250, 1890, 'https://picsum.photos/seed/xiaomi/400/400', 1, 1),
-('联想 ThinkPad X1 Carbon', '14英寸2.8K OLED屏，酷睿Ultra处理器，1.08kg轻薄商务本', 11999.00, 13999.00, 120, 345, 'https://picsum.photos/seed/thinkpad/400/400', 2, 1),
-('格力空调 云佳 1.5匹', '新一级能效，变频冷暖，WiFi智控，自清洁', 2899.00, 3499.00, 150, 789, 'https://picsum.photos/seed/gree/400/400', 3, 1);
+('iPhone 15 Pro Max 256GB', '苹果最新旗舰手机，A17 Pro芯片，钛金属设计，4800万像素主摄，超视网膜XDR显示屏，USB-C接口', 9999.00, 10999.00, 500, 1234, 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop', 1, 1),
+('MacBook Pro 14英寸 M3 Pro', 'Apple M3 Pro芯片，18GB统一内存，512GB固态硬盘，Liquid Retina XDR显示屏，长达17小时续航', 14999.00, 16499.00, 200, 856, 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop', 2, 1),
+('华为 Mate 60 Pro', '麒麟9000S芯片，超可靠玄武架构，天通卫星通话，XMAGE影像系统，双向北斗卫星消息', 6999.00, 7999.00, 300, 2341, 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop', 1, 1),
+('Sony WH-1000XM5 头戴式耳机', '行业领先降噪技术，30小时超长续航，多点蓝牙连接，高解析度音频，可折叠设计', 2499.00, 2999.00, 150, 678, 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop', 1, 1),
+('戴尔 U2723QE 4K显示器', '27英寸IPS Black技术面板，USB-C 90W供电，HDR400认证，99% sRGB广色域', 3999.00, 4599.00, 100, 432, 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&h=400&fit=crop', 2, 1),
+('海尔冰箱 BCD-510WDPF', '510升大容量对开门，风冷无霜，一级能效变频压缩机，智能控温，干湿分储', 3299.00, 3999.00, 80, 567, 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=400&h=400&fit=crop', 3, 1),
+('Nike Air Jordan 1 Retro High', '经典复刻篮球鞋，优质全粒面皮革鞋面，Air-Sole气垫缓震，橡胶外底抓地力强', 1299.00, 1499.00, 200, 890, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop', 4, 1),
+('兰蔻小黑瓶精华液 50ml', '第二代小黑瓶肌底精华，微生态科技，修护肌肤屏障，改善肤质，提升光泽', 799.00, 980.00, 300, 1567, 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=400&fit=crop', 5, 1),
+('三只松鼠坚果大礼包 1458g', '每日坚果混合装14袋/盒，含核桃仁、腰果、夏威夷果，健康零食年货礼盒', 89.90, 129.90, 1000, 5678, 'https://images.unsplash.com/photo-1599599810769-bcde5a160d32?w=400&h=400&fit=crop', 6, 1),
+('小米14 Ultra 512GB', '骁龙8 Gen3旗舰处理器，徕卡Summilux光学镜头，5000mAh电池，120W快充', 5999.00, 6499.00, 250, 1890, 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=400&fit=crop', 1, 1),
+('联想 ThinkPad X1 Carbon', '14英寸2.8K OLED屏，酷睿Ultra处理器，1.08kg极致轻薄商务本，军标品质', 11999.00, 13999.00, 120, 345, 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop', 2, 1),
+('格力空调 云佳 1.5匹', '新一级能效，变频冷暖，56℃净菌自清洁，WiFi智能控制，七档风速', 2899.00, 3499.00, 150, 789, 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?w=400&h=400&fit=crop', 3, 1);

@@ -4,7 +4,7 @@
     <header class="header" :class="{ 'header-scrolled': isScrolled }">
       <div class="header-inner">
         <!-- Logo -->
-        <router-link to="/" class="logo">
+        <router-link to="/home" class="logo">
           <div class="logo-icon">
             <el-icon :size="28"><ShoppingCart /></el-icon>
           </div>
@@ -15,7 +15,7 @@
         <div class="search-bar">
           <el-input
             v-model="searchKeyword"
-            placeholder="搜索商品..."
+            placeholder="搜索你想要的好物..."
             size="large"
             @keyup.enter="handleSearch"
             clearable
@@ -24,13 +24,19 @@
               <el-icon><Search /></el-icon>
             </template>
             <template #append>
-              <el-button @click="handleSearch" type="primary">搜索</el-button>
+              <el-button @click="handleSearch">搜索</el-button>
             </template>
           </el-input>
         </div>
 
         <!-- 右侧操作区 -->
         <div class="header-actions">
+          <!-- 管理员入口 - 醒目按钮 -->
+          <router-link to="/admin" class="action-item admin-btn" v-if="userStore.isAdmin">
+            <el-icon :size="20"><Setting /></el-icon>
+            <span class="action-text">后台管理</span>
+          </router-link>
+
           <router-link to="/cart" class="action-item cart-btn">
             <el-badge :value="cartStore.totalCount" :hidden="cartStore.totalCount === 0">
               <el-icon :size="22"><ShoppingCart /></el-icon>
@@ -147,7 +153,7 @@ const handleCommand = (command) => {
       break
     case 'logout':
       userStore.logout()
-      router.push('/')
+      router.push('/login')
       break
   }
 }
@@ -237,22 +243,29 @@ onUnmounted(() => {
   max-width: 560px;
 
   :deep(.el-input-group__append) {
-    background: var(--primary);
-    border-color: var(--primary);
+    background: linear-gradient(135deg, #6c63ff, #8b83ff);
+    border-color: #6c63ff;
     color: white;
 
     .el-button {
       color: white;
+      font-weight: 600;
     }
   }
 
   :deep(.el-input__wrapper) {
     border-radius: 24px 0 0 24px;
-    box-shadow: 0 0 0 1px var(--border);
+    box-shadow: 0 0 0 1px #e0e0e8;
+    background: #f8f9fc;
 
     &:focus-within {
-      box-shadow: 0 0 0 2px var(--primary-light);
+      box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.4);
+      background: white;
     }
+  }
+
+  :deep(.el-input-group__append) {
+    border-radius: 0 24px 24px 0;
   }
 }
 
@@ -298,6 +311,20 @@ onUnmounted(() => {
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(255, 77, 79, 0.3);
     background: var(--gradient-primary);
+  }
+}
+
+.admin-btn {
+  background: linear-gradient(135deg, #6c63ff, #8b83ff);
+  color: white !important;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 500;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(108, 99, 255, 0.35);
+    background: linear-gradient(135deg, #6c63ff, #8b83ff);
   }
 }
 

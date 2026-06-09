@@ -3,7 +3,7 @@
     <!-- 侧边栏 -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <router-link to="/" class="admin-logo">
+        <router-link to="/home" class="admin-logo">
           <el-icon :size="24"><ShoppingCart /></el-icon>
           <span>潮购后台</span>
         </router-link>
@@ -29,7 +29,7 @@
         </el-menu-item>
       </el-menu>
       <div class="sidebar-footer">
-        <router-link to="/" class="back-link">
+        <router-link to="/home" class="back-link">
           <el-icon><Back /></el-icon>
           <span>返回前台</span>
         </router-link>

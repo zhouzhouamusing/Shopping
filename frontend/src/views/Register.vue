@@ -181,8 +181,9 @@ const handleRegister = async () => {
       nickname: form.nickname || undefined
     })
     if (res.code === 200) {
-      ElMessage.success('注册成功！')
-      router.push('/')
+      ElMessage.success('注册成功，请登录！')
+      userStore.logout()
+      router.push('/login')
     } else {
       ElMessage.error(res.message)
     }

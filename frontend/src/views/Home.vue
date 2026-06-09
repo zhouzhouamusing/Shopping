@@ -196,12 +196,12 @@ const getCatIcon = (icon) => {
   const map = {
     'Smartphone': 'Iphone',
     'Computer': 'Monitor',
-    'HomeAppliance': 'House',
-    'Clothing': 'Shirt',
+    'HomeAppliance': 'HomeFilled',
+    'Clothing': 'Goods',
     'Beauty': 'MagicStick',
-    'Food': 'Apple',
-    'Book': 'Reading',
-    'Sports': 'Football'
+    'Food': 'Coffee',
+    'Book': 'Notebook',
+    'Sports': 'Trophy'
   }
   return map[icon] || 'Goods'
 }
@@ -325,8 +325,8 @@ onMounted(async () => {
 
   :deep(.el-input-group__append) {
     border-radius: 0 28px 28px 0;
-    background: var(--primary);
-    border-color: var(--primary);
+    background: linear-gradient(135deg, #6c63ff, #8b83ff);
+    border-color: #6c63ff;
     padding: 0 24px;
   }
 }
@@ -338,20 +338,22 @@ onMounted(async () => {
   gap: 10px;
 
   .hot-tag {
-    padding: 4px 14px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    color: rgba(255, 255, 255, 0.8);
+    padding: 5px 16px;
+    background: rgba(108, 99, 255, 0.15);
+    border: 1px solid rgba(108, 99, 255, 0.3);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.9);
     font-size: 13px;
     cursor: pointer;
     transition: var(--transition);
+    backdrop-filter: blur(4px);
 
     &:hover {
-      background: var(--primary);
-      border-color: var(--primary);
+      background: linear-gradient(135deg, #6c63ff, #8b83ff);
+      border-color: #6c63ff;
       color: white;
       transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
     }
   }
 }
@@ -390,12 +392,13 @@ onMounted(async () => {
   transition: var(--transition);
 
   &:hover {
-    background: var(--bg-gray);
+    background: linear-gradient(135deg, #f0f0ff, #e8f4ff);
     transform: translateY(-4px);
 
     .cat-icon {
-      background: var(--gradient-primary);
+      background: linear-gradient(135deg, #6c63ff, #8b83ff);
       color: white;
+      box-shadow: 0 6px 20px rgba(108, 99, 255, 0.3);
     }
   }
 
@@ -403,11 +406,11 @@ onMounted(async () => {
     width: 56px;
     height: 56px;
     border-radius: 16px;
-    background: #f0f2ff;
+    background: linear-gradient(135deg, #eef0ff, #e8ecff);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent);
+    color: #6c63ff;
     transition: var(--transition);
   }
 

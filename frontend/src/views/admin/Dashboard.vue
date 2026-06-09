@@ -38,7 +38,7 @@ const stats = ref([
   { title: '商品总数', value: '12', icon: 'Goods', gradient: 'linear-gradient(135deg, #667eea, #764ba2)' },
   { title: '今日订单', value: '0', icon: 'ShoppingBag', gradient: 'linear-gradient(135deg, #f093fb, #f5576c)' },
   { title: '注册用户', value: '1', icon: 'User', gradient: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
-  { title: '总销售额', value: '¥0', icon: 'Money', gradient: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
+  { title: '总销售额', value: '¥0', icon: 'Wallet', gradient: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
 ])
 </script>
 

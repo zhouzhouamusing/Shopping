@@ -1,6 +1,15 @@
 <template>
   <div class="product-detail-page" v-loading="loading">
     <div class="detail-inner" v-if="product">
+      <!-- 返回导航 -->
+      <div class="breadcrumb-nav">
+        <el-button class="back-btn" text @click="$router.back()">
+          <el-icon><ArrowLeft /></el-icon> 返回上一页
+        </el-button>
+        <span class="nav-sep">/</span>
+        <span class="nav-current">{{ product.name }}</span>
+      </div>
+
       <!-- 商品主信息 -->
       <div class="product-main">
         <!-- 图片区 -->
@@ -173,6 +182,41 @@ onMounted(fetchProduct)
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
+}
+
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 12px 20px;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+
+  .back-btn {
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 500;
+
+    &:hover {
+      color: var(--primary);
+    }
+  }
+
+  .nav-sep {
+    color: var(--text-light);
+    font-size: 12px;
+  }
+
+  .nav-current {
+    font-size: 13px;
+    color: var(--text-secondary);
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .product-main {

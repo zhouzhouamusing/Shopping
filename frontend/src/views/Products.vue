@@ -1,6 +1,17 @@
 <template>
   <div class="products-page">
     <div class="page-inner">
+      <!-- 页面顶部 -->
+      <div class="page-header">
+        <el-button class="back-btn" text @click="$router.back()">
+          <el-icon><ArrowLeft /></el-icon> 返回
+        </el-button>
+        <h2 class="page-title" v-if="$route.query.keyword">
+          搜索"{{ $route.query.keyword }}"的结果
+        </h2>
+        <h2 class="page-title" v-else>全部商品</h2>
+      </div>
+
       <!-- 筛选栏 -->
       <div class="filter-bar">
         <div class="filter-left">
@@ -143,6 +154,27 @@ onMounted(() => {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  .back-btn {
+    font-size: 14px;
+    color: var(--text-secondary);
+
+    &:hover {
+      color: var(--primary);
+    }
+  }
+
+  .page-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
 }
 
 .filter-bar {
