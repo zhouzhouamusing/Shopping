@@ -112,6 +112,78 @@
           <p>{{ product.description }}</p>
         </div>
       </div>
+
+      <!-- 商品评价 -->
+      <div class="product-reviews animate-fadeInUp stagger-4">
+        <div class="reviews-header">
+          <h2 class="desc-title">商品评价</h2>
+          <div class="rating-summary" v-if="product.reviewCount">
+            <span class="avg-score">{{ product.averageRating || '-' }}</span>
+            <el-rate :model-value="Number(product.averageRating) || 0" disabled />
+            <span class="review-count">{{ product.reviewCount }} 条评价</span>
+          </div>
+          <span v-else class="no-review-hint">暂无评价</span>
+        </div>
+
+        <!-- 评分筛选 -->
+        <div class="rating-filter" v-if="product.reviewCount">
+          <el-radio-group v-model="ratingFilter" size="small" @change="fetchReviews">
+            <el-radio-button :value="0">全部</el-radio-button>
+            <el-radio-button :value="5">5星</el-radio-button>
+            <el-radio-button :value="4">4星</el-radio-button>
+            <el-radio-button :value="3">3星</el-radio-button>
+            <el-radio-button :value="2">2星</el-radio-button>
+            <el-radio-button :value="1">1星</el-radio-button>
+          </el-radio-group>
+        </div>
+
+        <!-- 评价列表 -->
+        <div class="reviews-list" v-if="reviews.length > 0">
+          <div v-for="review in reviews" :key="review.id" class="review-item">
+            <div class="review-user-row">
+              <el-avatar :size="36" :src="review.userAvatar">
+                {{ review.username?.charAt(0) }}
+              </el-avatar>
+              <div class="review-user-info">
+                <span class="review-username">{{ review.username }}</span>
+                <div class="review-meta">
+                  <el-rate :model-value="review.rating" disabled size="small" />
+                  <span class="review-time">{{ formatTime(review.createdAt) }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="review-content" v-if="review.content">{{ review.content }}</p>
+            <div class="review-images" v-if="review.imageList && review.imageList.length">
+              <el-image
+                v-for="(img, idx) in review.imageList"
+                :key="idx"
+                :src="img"
+                :preview-src-list="review.imageList"
+                fit="cover"
+                class="review-img"
+              />
+            </div>
+            <div class="admin-reply-box" v-if="review.adminReply">
+              <span class="reply-label">商家回复：</span>
+              <span>{{ review.adminReply }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="product.reviewCount" class="no-reviews-filter">
+          <el-empty description="该筛选条件下暂无评价" :image-size="60" />
+        </div>
+
+        <!-- 分页 -->
+        <div class="reviews-pagination" v-if="reviewTotal > reviewPageSize">
+          <el-pagination
+            v-model:current-page="reviewPage"
+            :page-size="reviewPageSize"
+            :total="reviewTotal"
+            layout="prev, pager, next"
+            @current-change="fetchReviews"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -133,6 +205,13 @@ const product = ref(null)
 const loading = ref(true)
 const quantity = ref(1)
 
+// 评价相关
+const reviews = ref([])
+const reviewPage = ref(1)
+const reviewPageSize = ref(10)
+const reviewTotal = ref(0)
+const ratingFilter = ref(0)
+
 const fetchProduct = async () => {
   loading.value = true
   try {
@@ -143,6 +222,25 @@ const fetchProduct = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const fetchReviews = async () => {
+  const params = { page: reviewPage.value - 1, size: reviewPageSize.value }
+  if (ratingFilter.value > 0) params.rating = ratingFilter.value
+  try {
+    const res = await api.get(`/products/${route.params.id}/reviews`, { params })
+    if (res.code === 200) {
+      reviews.value = res.data.content
+      reviewTotal.value = res.data.totalElements
+    }
+  } catch (e) {
+    // silently fail
+  }
+}
+
+const formatTime = (time) => {
+  if (!time) return ''
+  return time.replace('T', ' ').substring(0, 16)
 }
 
 const addToCart = async () => {
@@ -169,7 +267,10 @@ const buyNow = async () => {
   router.push('/cart')
 }
 
-onMounted(fetchProduct)
+onMounted(() => {
+  fetchProduct()
+  fetchReviews()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -416,5 +517,136 @@ onMounted(fetchProduct)
   color: var(--text-secondary);
   line-height: 1.8;
   font-size: 15px;
+}
+
+/* 评价区域 */
+.product-reviews {
+  margin-top: 32px;
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 32px 40px;
+  box-shadow: var(--shadow);
+}
+
+.reviews-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.rating-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .avg-score {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+  }
+
+  .review-count {
+    font-size: 13px;
+    color: var(--text-light);
+  }
+}
+
+.no-review-hint {
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.rating-filter {
+  margin-bottom: 20px;
+}
+
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.review-user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.review-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.review-username {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.review-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .review-time {
+    font-size: 12px;
+    color: var(--text-light);
+  }
+}
+
+.review-content {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.review-images {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+
+  .review-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+}
+
+.admin-reply-box {
+  background: #f8f9fa;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+
+  .reply-label {
+    color: var(--primary);
+    font-weight: 600;
+  }
+}
+
+.no-reviews-filter {
+  padding: 20px 0;
+}
+
+.reviews-pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 </style>

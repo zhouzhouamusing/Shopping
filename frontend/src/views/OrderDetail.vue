@@ -27,7 +27,7 @@
           <el-button v-if="order.status === 0" type="primary" @click="payOrder">立即付款</el-button>
           <el-button v-if="order.status === 0" @click="cancelOrder">取消订单</el-button>
           <el-button v-if="order.status === 2" type="primary" @click="confirmReceive">确认收货</el-button>
-          <el-button v-if="order.status === 3" type="primary" @click="completeOrder">完成评价</el-button>
+          <el-button v-if="order.status === 3 && !showReviewForm" type="primary" @click="showReviewForm = true">发表评价</el-button>
           <el-button v-if="order.status === 1 || order.status === 2" type="warning" @click="refundOrder">申请退款</el-button>
         </div>
       </div>
@@ -72,20 +72,74 @@
           <span class="total-amount">¥{{ order.totalAmount }}</span>
         </div>
       </div>
+
+      <!-- 评价区域 -->
+      <div class="info-card review-section" v-if="order.status === 3 && showReviewForm">
+        <h3>发表评价</h3>
+        <div v-for="item in order.orderItems" :key="item.id" class="review-form-item">
+          <div class="review-product-header">
+            <img :src="item.productImage" :alt="item.productName" />
+            <span>{{ item.productName }}</span>
+          </div>
+          <el-form label-width="60px" class="review-form">
+            <el-form-item label="评分">
+              <el-rate v-model="reviewForms[item.id].rating" :colors="['#faad14', '#faad14', '#00d4aa']" />
+            </el-form-item>
+            <el-form-item label="评价">
+              <el-input
+                v-model="reviewForms[item.id].content"
+                type="textarea"
+                :rows="3"
+                placeholder="分享你的使用体验..."
+                maxlength="500"
+                show-word-limit
+              />
+            </el-form-item>
+            <el-form-item label="图片">
+              <el-upload
+                :action="uploadUrl"
+                :headers="uploadHeaders"
+                :on-success="(res) => onUploadSuccess(res, item.id)"
+                :on-remove="(file) => onUploadRemove(file, item.id)"
+                :limit="5"
+                list-type="picture-card"
+                accept="image/*"
+              >
+                <el-icon><Plus /></el-icon>
+              </el-upload>
+            </el-form-item>
+          </el-form>
+        </div>
+        <div class="review-submit-row">
+          <el-button type="primary" size="large" :loading="submittingReview" @click="submitReviews">
+            提交评价
+          </el-button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/utils/api'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const order = ref(null)
 const loading = ref(true)
+const showReviewForm = ref(false)
+const submittingReview = ref(false)
+const reviewForms = reactive({})
+
+const uploadUrl = '/api/upload'
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${localStorage.getItem('token')}`
+}))
 
 const statusIcons = {
   0: 'Clock',
@@ -100,14 +154,8 @@ const statusIcons = {
 
 const getStatusText = (status) => {
   const map = {
-    0: '待付款',
-    1: '待发货',
-    2: '待收货',
-    3: '待评价',
-    4: '已完成',
-    5: '已取消',
-    6: '已退款',
-    7: '已过期'
+    0: '待付款', 1: '待发货', 2: '待收货', 3: '待评价',
+    4: '已完成', 5: '已取消', 6: '已退款', 7: '已过期'
   }
   return map[status] || '未知状态'
 }
@@ -128,11 +176,7 @@ const getProgressStep = (status) => {
 const formatTime = (time) => time ? new Date(time).toLocaleString('zh-CN') : ''
 
 const goBack = () => {
-  if (window.history.length > 1) {
-    router.push({ name: 'Orders' })
-  } else {
-    router.push({ name: 'Orders' })
-  }
+  router.push({ name: 'Orders' })
 }
 
 const fetchOrder = async () => {
@@ -141,9 +185,71 @@ const fetchOrder = async () => {
     const res = await api.get(`/orders/${route.params.orderNo}`)
     if (res.code === 200) {
       order.value = res.data
+      initReviewForms()
     }
   } finally {
     loading.value = false
+  }
+}
+
+const initReviewForms = () => {
+  if (order.value?.orderItems) {
+    order.value.orderItems.forEach(item => {
+      if (!reviewForms[item.id]) {
+        reviewForms[item.id] = { rating: 5, content: '', images: [] }
+      }
+    })
+  }
+}
+
+const onUploadSuccess = (response, itemId) => {
+  if (response.code === 200) {
+    reviewForms[itemId].images.push(response.data)
+  } else {
+    ElMessage.error(response.message || '上传失败')
+  }
+}
+
+const onUploadRemove = (file, itemId) => {
+  const url = file.response?.data
+  if (url) {
+    const idx = reviewForms[itemId].images.indexOf(url)
+    if (idx > -1) reviewForms[itemId].images.splice(idx, 1)
+  }
+}
+
+const submitReviews = async () => {
+  if (!order.value?.orderItems?.length) return
+
+  for (const item of order.value.orderItems) {
+    if (!reviewForms[item.id]?.rating) {
+      ElMessage.warning(`请对 ${item.productName} 进行评分`)
+      return
+    }
+  }
+
+  submittingReview.value = true
+  try {
+    for (const item of order.value.orderItems) {
+      const form = reviewForms[item.id]
+      const res = await api.post('/reviews', {
+        orderItemId: item.id,
+        rating: form.rating,
+        content: form.content,
+        images: form.images
+      })
+      if (res.code !== 200) {
+        ElMessage.error(res.message || '评价提交失败')
+        return
+      }
+    }
+
+    await api.put(`/orders/${order.value.orderNo}/complete`)
+    ElMessage.success('评价提交成功')
+    showReviewForm.value = false
+    fetchOrder()
+  } finally {
+    submittingReview.value = false
   }
 }
 
@@ -169,18 +275,6 @@ const confirmReceive = () => {
       const res = await api.put(`/orders/${order.value.orderNo}/confirm`)
       if (res.code === 200) {
         ElMessage.success('已确认收货')
-        fetchOrder()
-      }
-    })
-    .catch(() => {})
-}
-
-const completeOrder = () => {
-  ElMessageBox.confirm('确认完成评价？', '完成订单', { type: 'info' })
-    .then(async () => {
-      const res = await api.put(`/orders/${order.value.orderNo}/complete`)
-      if (res.code === 200) {
-        ElMessage.success('订单已完成')
         fetchOrder()
       }
     })
@@ -357,5 +451,54 @@ onMounted(fetchOrder)
   font-size: 22px;
   font-weight: 800;
   color: var(--primary);
+}
+
+/* 评价表单 */
+.review-section {
+  h3 {
+    color: var(--primary);
+  }
+}
+
+.review-form-item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.review-product-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  img {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  span {
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+
+.review-form {
+  padding-left: 60px;
+
+  @media (max-width: 768px) {
+    padding-left: 0;
+  }
+}
+
+.review-submit-row {
+  display: flex;
+  justify-content: center;
+  padding-top: 16px;
 }
 </style>

@@ -47,6 +47,12 @@ public class Product {
     @Column(nullable = false)
     private Integer status = 1;
 
+    @Column(name = "average_rating", precision = 3, scale = 1)
+    private BigDecimal averageRating;
+
+    @Column(name = "review_count")
+    private Integer reviewCount = 0;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

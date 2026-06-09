@@ -183,3 +183,44 @@ INSERT INTO `products` (`name`, `description`, `price`, `original_price`, `stock
 ('小米14 Ultra 512GB', '骁龙8 Gen3旗舰处理器，徕卡Summilux光学镜头，5000mAh电池，120W快充', 5999.00, 6499.00, 250, 1890, 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&h=400&fit=crop', 1, 1),
 ('联想 ThinkPad X1 Carbon', '14英寸2.8K OLED屏，酷睿Ultra处理器，1.08kg极致轻薄商务本，军标品质', 11999.00, 13999.00, 120, 345, 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop', 2, 1),
 ('格力空调 云佳 1.5匹', '新一级能效，变频冷暖，56℃净菌自清洁，WiFi智能控制，七档风速', 2899.00, 3499.00, 150, 789, 'https://images.unsplash.com/photo-1585338107529-13afc5f02586?w=400&h=400&fit=crop', 3, 1);
+
+-- ========================================
+-- 8. 收货地址表
+-- ========================================
+CREATE TABLE IF NOT EXISTS `addresses` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '地址ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `receiver_name` VARCHAR(50) NOT NULL COMMENT '收货人姓名',
+    `phone` VARCHAR(20) NOT NULL COMMENT '手机号',
+    `province` VARCHAR(50) DEFAULT NULL COMMENT '省份',
+    `city` VARCHAR(50) DEFAULT NULL COMMENT '城市',
+    `district` VARCHAR(50) DEFAULT NULL COMMENT '区/县',
+    `detail_address` VARCHAR(200) NOT NULL COMMENT '详细地址',
+    `is_default` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否默认地址',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='收货地址表';
+
+-- ========================================
+-- 9. 商品评价表
+-- ========================================
+CREATE TABLE IF NOT EXISTS `reviews` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '评价ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `product_id` BIGINT NOT NULL COMMENT '商品ID',
+    `order_item_id` BIGINT NOT NULL COMMENT '订单项ID',
+    `rating` TINYINT NOT NULL COMMENT '评分1-5',
+    `content` TEXT COMMENT '评价内容',
+    `images` TEXT COMMENT '评价图片(JSON数组)',
+    `status` VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态:PENDING/APPROVED/REJECTED',
+    `admin_reply` TEXT COMMENT '管理员回复',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_order_item_id` (`order_item_id`),
+    KEY `idx_product_id` (`product_id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品评价表';

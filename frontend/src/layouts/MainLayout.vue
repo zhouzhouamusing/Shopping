@@ -31,6 +31,12 @@
 
         <!-- 右侧操作区 -->
         <div class="header-actions">
+          <!-- 首页 -->
+          <router-link to="/home" class="action-item home-btn">
+            <el-icon :size="20"><HomeFilled /></el-icon>
+            <span class="action-text">首页</span>
+          </router-link>
+
           <!-- 管理员入口 - 醒目按钮 -->
           <router-link to="/admin" class="action-item admin-btn" v-if="userStore.isAdmin">
             <el-icon :size="20"><Setting /></el-icon>
@@ -64,6 +70,9 @@
                   </el-dropdown-item>
                   <el-dropdown-item command="orders">
                     <el-icon><List /></el-icon>我的订单
+                  </el-dropdown-item>
+                  <el-dropdown-item command="addresses">
+                    <el-icon><Location /></el-icon>收货地址
                   </el-dropdown-item>
                   <el-dropdown-item divided command="logout">
                     <el-icon><SwitchButton /></el-icon>退出登录
@@ -150,6 +159,9 @@ const handleCommand = (command) => {
       break
     case 'orders':
       router.push('/orders')
+      break
+    case 'addresses':
+      router.push('/addresses')
       break
     case 'logout':
       userStore.logout()
@@ -294,6 +306,13 @@ onUnmounted(() => {
   .action-text {
     font-size: 13px;
     font-weight: 500;
+  }
+}
+
+.home-btn {
+  &.router-link-active {
+    color: var(--primary);
+    background: rgba(0, 212, 170, 0.08);
   }
 }
 

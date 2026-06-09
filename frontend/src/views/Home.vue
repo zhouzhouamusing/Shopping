@@ -4,9 +4,20 @@
     <section class="hero-section">
       <div class="hero-bg">
         <div class="hero-gradient"></div>
+        <div class="hero-grid-mesh"></div>
         <div class="hero-particles">
-          <div v-for="i in 12" :key="i" class="h-particle" :style="getHeroParticle(i)"></div>
+          <div v-for="i in 20" :key="i" class="h-particle" :style="getHeroParticle(i)"></div>
         </div>
+        <div class="hero-data-streams">
+          <div class="data-stream ds-1"></div>
+          <div class="data-stream ds-2"></div>
+          <div class="data-stream ds-3"></div>
+        </div>
+        <div class="hero-blobs">
+          <div class="hero-blob blob-1"></div>
+          <div class="hero-blob blob-2"></div>
+        </div>
+        <div class="hero-scan-line"></div>
       </div>
       <div class="hero-content animate-fadeInUp">
         <h1 class="hero-title">
@@ -90,6 +101,9 @@
               </div>
               <div class="product-stats">
                 <span>已售 {{ product.sales }}+</span>
+                <span class="product-rating-inline" v-if="product.averageRating">
+                  <el-rate :model-value="Number(product.averageRating)" disabled size="small" />
+                </span>
               </div>
             </div>
           </div>
@@ -134,6 +148,9 @@
               </div>
               <div class="product-stats">
                 <span>已售 {{ product.sales }}+</span>
+                <span class="product-rating-inline" v-if="product.averageRating">
+                  <el-rate :model-value="Number(product.averageRating)" disabled size="small" />
+                </span>
               </div>
             </div>
           </div>
@@ -256,6 +273,117 @@ onMounted(async () => {
               radial-gradient(ellipse at 80% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 40%);
 }
 
+/* 透视网格 */
+.hero-grid-mesh {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 212, 170, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 170, 0.07) 1px, transparent 1px);
+  background-size: 60px 60px;
+  transform: perspective(500px) rotateX(30deg);
+  transform-origin: center top;
+  opacity: 0.6;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 80%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 80%);
+}
+
+/* 数据流线 */
+.hero-data-streams {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.data-stream {
+  position: absolute;
+  width: 2px;
+  height: 80px;
+  border-radius: 2px;
+  animation: stream-fall 4s linear infinite;
+}
+
+.ds-1 {
+  left: 15%;
+  background: linear-gradient(to bottom, transparent, rgba(0, 212, 170, 0.7), transparent);
+  animation-delay: 0s;
+  animation-duration: 3.5s;
+}
+
+.ds-2 {
+  left: 65%;
+  background: linear-gradient(to bottom, transparent, rgba(14, 165, 233, 0.6), transparent);
+  animation-delay: 1.5s;
+  animation-duration: 4s;
+}
+
+.ds-3 {
+  left: 85%;
+  background: linear-gradient(to bottom, transparent, rgba(0, 212, 170, 0.5), transparent);
+  animation-delay: 2.5s;
+  animation-duration: 3s;
+}
+
+@keyframes stream-fall {
+  0% { top: -10%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* 形变光球 */
+.hero-blobs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.3;
+  animation: hero-morph 10s ease-in-out infinite;
+}
+
+.blob-1 {
+  width: 300px;
+  height: 300px;
+  background: #00d4aa;
+  top: -50px;
+  right: 10%;
+}
+
+.blob-2 {
+  width: 250px;
+  height: 250px;
+  background: #0ea5e9;
+  bottom: -30px;
+  left: 5%;
+  animation-delay: 5s;
+}
+
+@keyframes hero-morph {
+  0%, 100% { border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%; transform: scale(1); }
+  50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; transform: scale(1.1); }
+}
+
+/* 扫描线 */
+.hero-scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 170, 0.4), transparent);
+  animation: hero-scan 5s linear infinite;
+  box-shadow: 0 0 15px rgba(0, 212, 170, 0.2);
+}
+
+@keyframes hero-scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
 .hero-particles {
   position: absolute;
   inset: 0;
@@ -266,6 +394,21 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   animation: float 6s infinite ease-in-out;
+
+  &:nth-child(odd) {
+    background: rgba(0, 212, 170, 0.5);
+    box-shadow: 0 0 6px rgba(0, 212, 170, 0.4);
+  }
+
+  &:nth-child(3n) {
+    background: rgba(14, 165, 233, 0.5);
+    animation-name: particle-pulse;
+  }
+}
+
+@keyframes particle-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.5); opacity: 0.7; }
 }
 
 .hero-content {
@@ -560,5 +703,13 @@ onMounted(async () => {
 .product-stats {
   font-size: 12px;
   color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.product-rating-inline {
+  display: flex;
+  align-items: center;
 }
 </style>

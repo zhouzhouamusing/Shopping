@@ -108,8 +108,27 @@
       </div>
 
       <!-- 结算对话框 -->
-      <el-dialog v-model="showCheckout" title="确认订单" width="500px">
-        <el-form :model="orderForm" :rules="orderRules" ref="orderFormRef" label-width="80px">
+      <el-dialog v-model="showCheckout" title="确认订单" width="560px">
+        <!-- 地址选择 -->
+        <div class="address-select-section" v-if="savedAddresses.length > 0">
+          <h4 class="section-label">选择收货地址</h4>
+          <el-radio-group v-model="selectedAddressId" class="address-radio-group" @change="onAddressChange">
+            <el-radio v-for="addr in savedAddresses" :key="addr.id" :value="addr.id" class="address-radio-item">
+              <span class="addr-name">{{ addr.receiverName }}</span>
+              <span class="addr-phone">{{ addr.phone }}</span>
+              <span class="addr-detail">{{ addr.province }}{{ addr.city }}{{ addr.district }}{{ addr.detailAddress }}</span>
+              <el-tag v-if="addr.isDefault" size="small" type="success">默认</el-tag>
+            </el-radio>
+            <el-radio :value="0" class="address-radio-item">
+              <span>使用新地址</span>
+            </el-radio>
+          </el-radio-group>
+          <router-link to="/addresses" class="manage-addr-link">管理收货地址</router-link>
+        </div>
+
+        <!-- 手动输入地址 -->
+        <el-form v-show="selectedAddressId === 0 || savedAddresses.length === 0"
+                 :model="orderForm" :rules="orderRules" ref="orderFormRef" label-width="80px" class="manual-address-form">
           <el-form-item label="收货人" prop="receiverName">
             <el-input v-model="orderForm.receiverName" placeholder="请输入收货人姓名" />
           </el-form-item>
@@ -123,6 +142,12 @@
             <el-input v-model="orderForm.remark" placeholder="选填" />
           </el-form-item>
         </el-form>
+        <el-form v-show="selectedAddressId !== 0 && savedAddresses.length > 0" label-width="80px">
+          <el-form-item label="备注">
+            <el-input v-model="orderForm.remark" placeholder="选填" />
+          </el-form-item>
+        </el-form>
+
         <div class="checkout-summary">
           <p>共 {{ cartStore.selectedItems.length }} 件商品</p>
           <p class="checkout-total">应付金额：<span>¥{{ cartStore.totalPrice.toFixed(2) }}</span></p>
@@ -149,6 +174,9 @@ const cartStore = useCartStore()
 const showCheckout = ref(false)
 const submitting = ref(false)
 const orderFormRef = ref(null)
+const savedAddresses = ref([])
+const selectedAddressId = ref(0)
+
 const orderForm = ref({
   receiverName: '',
   receiverPhone: '',
@@ -183,17 +211,44 @@ const goDetail = (id) => {
   router.push({ name: 'ProductDetail', params: { id } })
 }
 
+const fetchAddresses = async () => {
+  try {
+    const res = await api.get('/addresses')
+    if (res.code === 200) {
+      savedAddresses.value = res.data
+      const defaultAddr = res.data.find(a => a.isDefault)
+      if (defaultAddr) {
+        selectedAddressId.value = defaultAddr.id
+      }
+    }
+  } catch (e) {}
+}
+
+const onAddressChange = (val) => {
+  selectedAddressId.value = val
+}
+
 const goCheckout = () => {
+  fetchAddresses()
   showCheckout.value = true
 }
 
 const submitOrder = async () => {
-  const valid = await orderFormRef.value?.validate().catch(() => false)
-  if (!valid) return
+  let requestData = { remark: orderForm.value.remark }
+
+  if (selectedAddressId.value && selectedAddressId.value !== 0) {
+    requestData.addressId = selectedAddressId.value
+  } else {
+    const valid = await orderFormRef.value?.validate().catch(() => false)
+    if (!valid) return
+    requestData.receiverName = orderForm.value.receiverName
+    requestData.receiverPhone = orderForm.value.receiverPhone
+    requestData.receiverAddress = orderForm.value.receiverAddress
+  }
 
   submitting.value = true
   try {
-    const res = await api.post('/orders', orderForm.value)
+    const res = await api.post('/orders', requestData)
     if (res.code === 200) {
       ElMessage.success('订单创建成功！')
       showCheckout.value = false
@@ -403,6 +458,64 @@ onMounted(() => {
 }
 
 /* 结算弹窗 */
+.address-select-section {
+  margin-bottom: 16px;
+
+  .section-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+}
+
+.address-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.address-radio-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 100%;
+  margin-right: 0 !important;
+
+  .addr-name {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .addr-phone {
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+
+  .addr-detail {
+    font-size: 12px;
+    color: var(--text-light);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.manage-addr-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.manual-address-form {
+  margin-top: 12px;
+}
+
 .checkout-summary {
   background: var(--bg-gray);
   padding: 16px;

@@ -1,13 +1,16 @@
 package com.shopping.controller;
 
 import com.shopping.dto.ProductRequest;
+import com.shopping.dto.ReviewReplyRequest;
 import com.shopping.dto.Result;
 import com.shopping.entity.Order;
 import com.shopping.entity.Product;
+import com.shopping.entity.Review;
 import com.shopping.service.OrderEventQueueService;
 import com.shopping.service.OrderService;
 import com.shopping.service.PriceCircuitBreakerService;
 import com.shopping.service.ProductService;
+import com.shopping.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +26,7 @@ public class AdminController {
 
     private final ProductService productService;
     private final OrderService orderService;
+    private final ReviewService reviewService;
     private final PriceCircuitBreakerService priceCircuitBreaker;
     private final OrderEventQueueService orderEventQueue;
 
@@ -116,5 +120,29 @@ public class AdminController {
     public Result<Integer> retryDeadLetterEvents() {
         int count = orderEventQueue.retryDeadLetterEvents();
         return Result.success(count);
+    }
+
+    // ==================== 评价管理 ====================
+
+    @GetMapping("/reviews")
+    public Result<Page<Review>> getAllReviews(@RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "10") int size,
+                                              @RequestParam(required = false) String status) {
+        return reviewService.getAllReviews(page, size, status);
+    }
+
+    @PutMapping("/reviews/{id}/approve")
+    public Result<Void> approveReview(@PathVariable Long id) {
+        return reviewService.approveReview(id);
+    }
+
+    @PutMapping("/reviews/{id}/reject")
+    public Result<Void> rejectReview(@PathVariable Long id) {
+        return reviewService.rejectReview(id);
+    }
+
+    @PutMapping("/reviews/{id}/reply")
+    public Result<Void> replyReview(@PathVariable Long id, @RequestBody ReviewReplyRequest request) {
+        return reviewService.replyReview(id, request.getAdminReply());
     }
 }

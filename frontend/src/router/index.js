@@ -19,6 +19,7 @@ const routes = [
       { path: '/order/:orderNo', name: 'OrderDetail', component: () => import('@/views/OrderDetail.vue') },
       { path: '/payment/:orderNo', name: 'Payment', component: () => import('@/views/Payment.vue') },
       { path: '/payment-result/:paymentNo', name: 'PaymentResult', component: () => import('@/views/PaymentResult.vue') },
+      { path: '/addresses', name: 'Addresses', component: () => import('@/views/Addresses.vue') },
     ]
   },
   {
@@ -41,6 +42,7 @@ const routes = [
       { path: '', name: 'AdminDashboard', component: () => import('@/views/admin/Dashboard.vue') },
       { path: 'products', name: 'AdminProducts', component: () => import('@/views/admin/ProductManage.vue') },
       { path: 'orders', name: 'AdminOrders', component: () => import('@/views/admin/OrderManage.vue') },
+      { path: 'reviews', name: 'AdminReviews', component: () => import('@/views/admin/ReviewManage.vue') },
     ]
   }
 ]
@@ -55,12 +57,6 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
-
-  // 已登录用户访问登录/注册页时，跳转到首页
-  if (to.meta.guest && userStore.isLoggedIn) {
-    next({ name: 'Home' })
-    return
-  }
 
   // 需要认证的页面，未登录则跳转登录
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {

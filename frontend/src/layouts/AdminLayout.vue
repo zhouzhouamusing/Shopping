@@ -27,6 +27,10 @@
           <el-icon><List /></el-icon>
           <span>订单管理</span>
         </el-menu-item>
+        <el-menu-item index="/admin/reviews">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>评价管理</span>
+        </el-menu-item>
       </el-menu>
       <div class="sidebar-footer">
         <router-link to="/home" class="back-link">
@@ -67,7 +71,8 @@ const pageTitle = computed(() => {
   const titles = {
     '/admin': '数据概览',
     '/admin/products': '商品管理',
-    '/admin/orders': '订单管理'
+    '/admin/orders': '订单管理',
+    '/admin/reviews': '评价管理'
   }
   return titles[route.path] || '后台管理'
 })

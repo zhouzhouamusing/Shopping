@@ -38,6 +38,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
+    private final AddressRepository addressRepository;
     private final PriceCircuitBreakerService priceCircuitBreaker;
     private final OrderEventQueueService eventQueue;
 
@@ -48,6 +49,31 @@ public class OrderService {
     )
     @Transactional(rollbackFor = Exception.class)
     public Result<Order> createOrder(Long userId, OrderRequest request) {
+        // 如果指定了地址ID，从保存的地址加载收货信息
+        if (request.getAddressId() != null) {
+            Address address = addressRepository.findByIdAndUserId(request.getAddressId(), userId).orElse(null);
+            if (address == null) {
+                return Result.error(400, "收货地址不存在");
+            }
+            request.setReceiverName(address.getReceiverName());
+            request.setReceiverPhone(address.getPhone());
+            String fullAddress = (address.getProvince() != null ? address.getProvince() : "")
+                    + (address.getCity() != null ? address.getCity() : "")
+                    + (address.getDistrict() != null ? address.getDistrict() : "")
+                    + address.getDetailAddress();
+            request.setReceiverAddress(fullAddress);
+        }
+
+        if (request.getReceiverName() == null || request.getReceiverName().isBlank()) {
+            return Result.error(400, "收货人姓名不能为空");
+        }
+        if (request.getReceiverPhone() == null || request.getReceiverPhone().isBlank()) {
+            return Result.error(400, "收货人电话不能为空");
+        }
+        if (request.getReceiverAddress() == null || request.getReceiverAddress().isBlank()) {
+            return Result.error(400, "收货地址不能为空");
+        }
+
         List<CartItem> cartItems = cartItemRepository.findByUserIdAndSelected(userId, 1);
         if (cartItems.isEmpty()) {
             return Result.error(400, "购物车中没有选中的商品");
