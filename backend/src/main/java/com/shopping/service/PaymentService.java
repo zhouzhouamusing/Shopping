@@ -14,6 +14,9 @@ import com.shopping.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -36,6 +40,9 @@ public class PaymentService {
 
     @Value("${payment.timeout-minutes:30}")
     private int timeoutMinutes;
+
+    // 模拟支付渠道处理状态 (生产环境由第三方回调替代)
+    private final ConcurrentHashMap<String, String> channelProcessingMap = new ConcurrentHashMap<>();
 
     @Transactional(rollbackFor = Exception.class)
     public Result<PaymentResponse> createPayment(Long userId, PaymentRequest request) {
@@ -75,6 +82,7 @@ public class PaymentService {
         payment.setIdempotencyKey(idempotencyKey);
         payment.setExpireTime(expireTime);
 
+        // 货到付款：直接完成支付
         if ("COD".equals(request.getPaymentMethod())) {
             payment.setPaymentStatus("SUCCESS");
             payment.setPayTime(LocalDateTime.now());
@@ -86,10 +94,15 @@ public class PaymentService {
             order.setPaymentNo(paymentNo);
             orderRepository.save(order);
 
+            log.info("货到付款订单直接完成: orderNo={}, paymentNo={}", order.getOrderNo(), paymentNo);
             return Result.success(buildResponse(payment));
         }
 
         paymentRepository.save(payment);
+
+        // 调用模拟支付渠道
+        invokePaymentChannel(payment);
+
         return Result.success(buildResponse(payment));
     }
 
@@ -115,6 +128,9 @@ public class PaymentService {
         return Result.success(buildResponse(payment));
     }
 
+    /**
+     * 模拟用户确认支付 - 触发支付渠道回调
+     */
     @Transactional(rollbackFor = Exception.class)
     public Result<PaymentResponse> processPayment(Long userId, String paymentNo) {
         Payment payment = paymentRepository.findByPaymentNo(paymentNo).orElse(null);
@@ -125,6 +141,7 @@ public class PaymentService {
             return Result.error(403, "无权操作此支付记录");
         }
 
+        // 幂等性校验：已成功直接返回
         if ("SUCCESS".equals(payment.getPaymentStatus())) {
             return Result.success(buildResponse(payment));
         }
@@ -143,17 +160,106 @@ public class PaymentService {
             return Result.error(400, "支付已超时，请重新下单");
         }
 
-        payment.setPaymentStatus("SUCCESS");
-        payment.setPayTime(LocalDateTime.now());
-        paymentRepository.save(payment);
+        // 模拟向支付渠道确认支付
+        log.info("向支付渠道发起支付确认: paymentNo={}, method={}, amount={}",
+                paymentNo, payment.getPaymentMethod(), payment.getPaymentAmount());
 
-        Order order = orderRepository.findByOrderNo(payment.getOrderNo()).orElse(null);
-        if (order != null && order.getStatus() == 0) {
-            order.setStatus(1);
-            order.setPaymentTime(LocalDateTime.now());
-            order.setPaymentMethod(payment.getPaymentMethod());
-            order.setPaymentNo(paymentNo);
-            orderRepository.save(order);
+        // 模拟渠道返回成功，触发回调逻辑
+        return handlePaymentCallback(paymentNo, "SUCCESS", generateTradeNo());
+    }
+
+    /**
+     * 支付渠道异步回调处理
+     * 在生产环境中，此方法由第三方支付平台的异步通知调用
+     */
+    @Retryable(
+        retryFor = {Exception.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 500, multiplier = 2)
+    )
+    @Transactional(rollbackFor = Exception.class)
+    public Result<PaymentResponse> handlePaymentCallback(String paymentNo, String result, String tradeNo) {
+        Payment payment = paymentRepository.findByPaymentNo(paymentNo).orElse(null);
+        if (payment == null) {
+            log.error("回调处理失败，支付记录不存在: paymentNo={}", paymentNo);
+            return Result.error(404, "支付记录不存在");
+        }
+
+        // 幂等性：重复回调不重复处理
+        if ("SUCCESS".equals(payment.getPaymentStatus())) {
+            log.info("重复回调忽略: paymentNo={}", paymentNo);
+            return Result.success(buildResponse(payment));
+        }
+
+        if (!"PENDING".equals(payment.getPaymentStatus())) {
+            log.warn("回调时支付状态异常: paymentNo={}, status={}", paymentNo, payment.getPaymentStatus());
+            return Result.error(400, "支付状态异常");
+        }
+
+        if ("SUCCESS".equals(result)) {
+            payment.setPaymentStatus("SUCCESS");
+            payment.setPayTime(LocalDateTime.now());
+            paymentRepository.save(payment);
+
+            // 更新订单状态
+            Order order = orderRepository.findByOrderNo(payment.getOrderNo()).orElse(null);
+            if (order != null && order.getStatus() == 0) {
+                order.setStatus(1);
+                order.setPaymentTime(LocalDateTime.now());
+                order.setPaymentMethod(payment.getPaymentMethod());
+                order.setPaymentNo(paymentNo);
+                orderRepository.save(order);
+            }
+
+            log.info("支付成功回调处理完成: paymentNo={}, orderNo={}, tradeNo={}",
+                    paymentNo, payment.getOrderNo(), tradeNo);
+            channelProcessingMap.remove(paymentNo);
+        } else {
+            payment.setPaymentStatus("FAILED");
+            paymentRepository.save(payment);
+            log.info("支付失败回调: paymentNo={}, reason={}", paymentNo, result);
+            channelProcessingMap.remove(paymentNo);
+        }
+
+        return Result.success(buildResponse(payment));
+    }
+
+    /**
+     * 模拟外部支付渠道回调（异步通知）
+     * 生产环境中由支付宝/微信等发起 HTTP POST 回调
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public Result<String> receiveChannelCallback(String paymentNo, String status, String tradeNo, String sign) {
+        // 模拟验签（生产环境需要用平台公钥验证签名）
+        if (sign == null || sign.isEmpty()) {
+            log.warn("回调验签失败: paymentNo={}", paymentNo);
+            return Result.error(400, "验签失败");
+        }
+
+        log.info("收到支付渠道回调通知: paymentNo={}, status={}, tradeNo={}", paymentNo, status, tradeNo);
+
+        String callbackResult = "SUCCESS".equals(status) ? "SUCCESS" : "FAILED";
+        handlePaymentCallback(paymentNo, callbackResult, tradeNo);
+
+        return Result.success("OK");
+    }
+
+    /**
+     * 查询支付渠道状态（主动查询模式，用于回调丢失场景）
+     */
+    public Result<PaymentResponse> queryChannelStatus(Long userId, String paymentNo) {
+        Payment payment = paymentRepository.findByPaymentNo(paymentNo).orElse(null);
+        if (payment == null) {
+            return Result.error(404, "支付记录不存在");
+        }
+        if (!payment.getUserId().equals(userId)) {
+            return Result.error(403, "无权查看");
+        }
+
+        // 模拟主动查询渠道状态
+        String channelStatus = channelProcessingMap.get(paymentNo);
+        if (channelStatus != null && "PROCESSING".equals(channelStatus) && "PENDING".equals(payment.getPaymentStatus())) {
+            log.info("主动查询渠道状态: paymentNo={}, 渠道处理中", paymentNo);
         }
 
         return Result.success(buildResponse(payment));
@@ -171,12 +277,38 @@ public class PaymentService {
 
             Order order = orderRepository.findByOrderNo(payment.getOrderNo()).orElse(null);
             if (order != null && order.getStatus() == 0) {
-                order.setStatus(4);
+                order.setStatus(7);
                 orderRepository.save(order);
                 restoreStock(order.getId());
             }
-            log.info("支付超时，订单已取消: orderNo={}, paymentNo={}",
+            channelProcessingMap.remove(payment.getPaymentNo());
+            log.info("支付超时，订单已过期: orderNo={}, paymentNo={}",
                     payment.getOrderNo(), payment.getPaymentNo());
+        }
+    }
+
+    /**
+     * 模拟调用支付渠道（在线支付）
+     */
+    private void invokePaymentChannel(Payment payment) {
+        String method = payment.getPaymentMethod();
+        channelProcessingMap.put(payment.getPaymentNo(), "PROCESSING");
+
+        log.info("发起支付渠道调用: paymentNo={}, method={}, amount={}",
+                payment.getPaymentNo(), method, payment.getPaymentAmount());
+
+        switch (method) {
+            case "ALIPAY":
+                log.info("调用支付宝接口 - alipay.trade.precreate | 生成预支付订单");
+                break;
+            case "WECHAT":
+                log.info("调用微信支付接口 - /pay/unifiedorder | 统一下单NATIVE模式");
+                break;
+            case "BANK_CARD":
+                log.info("调用银行卡快捷支付接口 - 发送短信验证");
+                break;
+            default:
+                log.info("未知支付渠道: {}", method);
         }
     }
 
@@ -216,5 +348,9 @@ public class PaymentService {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String uuid = UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
         return "PAY" + timestamp + uuid;
+    }
+
+    private String generateTradeNo() {
+        return "TXN" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
     }
 }

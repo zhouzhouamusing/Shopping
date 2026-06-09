@@ -2,7 +2,7 @@
   <div class="order-detail-page" v-loading="loading">
     <div class="page-inner" v-if="order">
       <h1 class="page-title">
-        <el-button text @click="$router.back()">
+        <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
         </el-button>
         订单详情
@@ -19,11 +19,27 @@
           <h3>{{ getStatusText(order.status) }}</h3>
           <p>订单号：{{ order.orderNo }}</p>
           <p>创建时间：{{ formatTime(order.createdAt) }}</p>
+          <p v-if="order.paymentTime">支付时间：{{ formatTime(order.paymentTime) }}</p>
+          <p v-if="order.deliveryTime">发货时间：{{ formatTime(order.deliveryTime) }}</p>
+          <p v-if="order.finishTime">完成时间：{{ formatTime(order.finishTime) }}</p>
         </div>
         <div class="status-actions">
           <el-button v-if="order.status === 0" type="primary" @click="payOrder">立即付款</el-button>
           <el-button v-if="order.status === 0" @click="cancelOrder">取消订单</el-button>
+          <el-button v-if="order.status === 2" type="primary" @click="confirmReceive">确认收货</el-button>
+          <el-button v-if="order.status === 3" type="primary" @click="completeOrder">完成评价</el-button>
+          <el-button v-if="order.status === 1 || order.status === 2" type="warning" @click="refundOrder">申请退款</el-button>
         </div>
+      </div>
+
+      <!-- 订单进度 -->
+      <div class="progress-card" v-if="order.status <= 4 && order.status !== 0">
+        <el-steps :active="getProgressStep(order.status)" finish-status="success" align-center>
+          <el-step title="已付款" />
+          <el-step title="已发货" />
+          <el-step title="已收货" />
+          <el-step title="已完成" />
+        </el-steps>
       </div>
 
       <!-- 收货信息 -->
@@ -33,6 +49,7 @@
           <div><span class="label">收货人：</span>{{ order.receiverName }}</div>
           <div><span class="label">联系电话：</span>{{ order.receiverPhone }}</div>
           <div><span class="label">收货地址：</span>{{ order.receiverAddress }}</div>
+          <div v-if="order.paymentMethod"><span class="label">支付方式：</span>{{ getMethodName(order.paymentMethod) }}</div>
           <div v-if="order.remark"><span class="label">备注：</span>{{ order.remark }}</div>
         </div>
       </div>
@@ -74,16 +91,49 @@ const statusIcons = {
   0: 'Clock',
   1: 'CreditCard',
   2: 'Van',
-  3: 'CircleCheck',
-  4: 'CircleClose'
+  3: 'Star',
+  4: 'CircleCheck',
+  5: 'CircleClose',
+  6: 'RefreshLeft',
+  7: 'Timer'
 }
 
 const getStatusText = (status) => {
-  const map = { 0: '等待付款', 1: '已付款，待发货', 2: '已发货', 3: '交易完成', 4: '已取消' }
+  const map = {
+    0: '待付款',
+    1: '待发货',
+    2: '待收货',
+    3: '待评价',
+    4: '已完成',
+    5: '已取消',
+    6: '已退款',
+    7: '已过期'
+  }
   return map[status] || '未知状态'
 }
 
+const getMethodName = (method) => {
+  const map = { ALIPAY: '支付宝', WECHAT: '微信支付', BANK_CARD: '银行卡', COD: '货到付款' }
+  return map[method] || method
+}
+
+const getProgressStep = (status) => {
+  if (status === 1) return 1
+  if (status === 2) return 2
+  if (status === 3) return 3
+  if (status === 4) return 4
+  return 0
+}
+
 const formatTime = (time) => time ? new Date(time).toLocaleString('zh-CN') : ''
+
+const goBack = () => {
+  if (window.history.length > 1) {
+    router.push({ name: 'Orders' })
+  } else {
+    router.push({ name: 'Orders' })
+  }
+}
 
 const fetchOrder = async () => {
   loading.value = true
@@ -102,11 +152,47 @@ const payOrder = () => {
 }
 
 const cancelOrder = () => {
-  ElMessageBox.confirm('确定取消？', '提示', { type: 'warning' })
+  ElMessageBox.confirm('确定要取消订单吗？', '取消订单', { type: 'warning' })
     .then(async () => {
       const res = await api.put(`/orders/${order.value.orderNo}/cancel`)
       if (res.code === 200) {
-        ElMessage.success('已取消')
+        ElMessage.success('订单已取消')
+        fetchOrder()
+      }
+    })
+    .catch(() => {})
+}
+
+const confirmReceive = () => {
+  ElMessageBox.confirm('确认已收到商品？', '确认收货', { type: 'info' })
+    .then(async () => {
+      const res = await api.put(`/orders/${order.value.orderNo}/confirm`)
+      if (res.code === 200) {
+        ElMessage.success('已确认收货')
+        fetchOrder()
+      }
+    })
+    .catch(() => {})
+}
+
+const completeOrder = () => {
+  ElMessageBox.confirm('确认完成评价？', '完成订单', { type: 'info' })
+    .then(async () => {
+      const res = await api.put(`/orders/${order.value.orderNo}/complete`)
+      if (res.code === 200) {
+        ElMessage.success('订单已完成')
+        fetchOrder()
+      }
+    })
+    .catch(() => {})
+}
+
+const refundOrder = () => {
+  ElMessageBox.confirm('确定要申请退款吗？退款后库存将恢复。', '申请退款', { type: 'warning' })
+    .then(async () => {
+      const res = await api.put(`/orders/${order.value.orderNo}/refund`)
+      if (res.code === 200) {
+        ElMessage.success('退款成功')
         fetchOrder()
       }
     })
@@ -160,19 +246,41 @@ onMounted(fetchOrder)
   align-items: center;
   justify-content: center;
   color: white;
+  flex-shrink: 0;
 
   &.status-0 { background: #faad14; }
-  &.status-1 { background: #1890ff; }
-  &.status-2 { background: #722ed1; }
-  &.status-3 { background: #52c41a; }
-  &.status-4 { background: #999; }
+  &.status-1 { background: var(--accent); }
+  &.status-2 { background: var(--primary); }
+  &.status-3 { background: #f59e0b; }
+  &.status-4 { background: #10b981; }
+  &.status-5 { background: #9ca3af; }
+  &.status-6 { background: #ef4444; }
+  &.status-7 { background: #6b7280; }
 }
 
 .status-info {
   flex: 1;
 
   h3 { font-size: 18px; margin-bottom: 4px; }
-  p { font-size: 13px; color: var(--text-light); }
+  p { font-size: 13px; color: var(--text-light); margin-top: 2px; }
+}
+
+.status-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
+}
+
+.progress-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 24px 32px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
 }
 
 .info-card {

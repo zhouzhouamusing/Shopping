@@ -306,3 +306,161 @@ a {
     background: #a1a1a1;
   }
 }
+
+/* ========================================
+   Element Plus 全局主题覆盖 - 蓝绿色
+   ======================================== */
+
+/* 主要按钮 */
+.el-button--primary {
+  --el-button-bg-color: #00d4aa;
+  --el-button-border-color: #00d4aa;
+  --el-button-hover-bg-color: #00b892;
+  --el-button-hover-border-color: #00b892;
+  --el-button-active-bg-color: #009d7c;
+  --el-button-active-border-color: #009d7c;
+  --el-button-disabled-bg-color: #80e9d4;
+  --el-button-disabled-border-color: #80e9d4;
+}
+
+/* 警告按钮 */
+.el-button--warning {
+  --el-button-bg-color: #f59e0b;
+  --el-button-border-color: #f59e0b;
+  --el-button-hover-bg-color: #d97706;
+  --el-button-hover-border-color: #d97706;
+  --el-button-active-bg-color: #b45309;
+  --el-button-active-border-color: #b45309;
+}
+
+/* 链接和文字按钮 */
+.el-button--primary.is-text,
+.el-button--primary.is-link {
+  --el-button-text-color: #00d4aa;
+  --el-button-hover-text-color: #00b892;
+}
+
+/* 标签 */
+.el-tag--primary {
+  --el-tag-bg-color: rgba(0, 212, 170, 0.1);
+  --el-tag-border-color: rgba(0, 212, 170, 0.2);
+  --el-tag-text-color: #00b892;
+}
+
+/* 单选按钮组 */
+.el-radio-button__original-radio:checked + .el-radio-button__inner {
+  background-color: #00d4aa;
+  border-color: #00d4aa;
+}
+
+/* 对话框 */
+.el-dialog {
+  --el-dialog-border-radius: 16px;
+}
+
+.el-dialog__header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.el-dialog__body {
+  padding: 20px 24px;
+}
+
+.el-dialog__footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* 消息确认框 */
+.el-message-box {
+  --el-messagebox-border-radius: 16px;
+  border-radius: 16px;
+  padding: 20px;
+
+  .el-message-box__btns {
+    .el-button--primary {
+      --el-button-bg-color: #00d4aa;
+      --el-button-border-color: #00d4aa;
+      --el-button-hover-bg-color: #00b892;
+      --el-button-hover-border-color: #00b892;
+    }
+  }
+}
+
+/* 分页 */
+.el-pagination {
+  --el-pagination-button-color: var(--text-primary);
+  --el-pagination-hover-color: #00d4aa;
+
+  .is-active {
+    background-color: #00d4aa !important;
+  }
+}
+
+/* 复选框 */
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: #00d4aa;
+  border-color: #00d4aa;
+}
+
+.el-checkbox__input.is-checked + .el-checkbox__label {
+  color: #00d4aa;
+}
+
+/* 步骤条 */
+.el-step__head.is-finish {
+  color: #00d4aa;
+  border-color: #00d4aa;
+}
+
+.el-step__title.is-finish {
+  color: #00d4aa;
+}
+
+.el-step__head.is-process {
+  color: #00d4aa;
+  border-color: #00d4aa;
+}
+
+.el-step__title.is-process {
+  color: #00d4aa;
+  font-weight: 700;
+}
+
+/* 输入框聚焦 */
+.el-input__wrapper:focus-within {
+  box-shadow: 0 0 0 1px #00d4aa !important;
+}
+
+/* 开关 */
+.el-switch.is-checked .el-switch__core {
+  background-color: #00d4aa;
+  border-color: #00d4aa;
+}
+
+/* 消息提示 */
+.el-message--success {
+  --el-message-bg-color: #f0fdf9;
+  --el-message-border-color: #d1fae5;
+  --el-message-text-color: #00b892;
+}
+
+/* 菜单激活项 */
+.el-menu-item.is-active {
+  color: #00d4aa !important;
+}
+
+/* Badge */
+.el-badge__content--primary {
+  background-color: #00d4aa;
+}
+
+/* 加载 */
+.el-loading-spinner .el-loading-text {
+  color: #00d4aa;
+}
+
+.el-loading-spinner .path {
+  stroke: #00d4aa;
+}

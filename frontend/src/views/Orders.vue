@@ -53,6 +53,24 @@
                 @click.stop="cancelOrder(order.orderNo)"
               >取消订单</el-button>
               <el-button
+                v-if="order.status === 2"
+                type="primary"
+                size="small"
+                @click.stop="confirmReceive(order.orderNo)"
+              >确认收货</el-button>
+              <el-button
+                v-if="order.status === 3"
+                type="primary"
+                size="small"
+                @click.stop="completeOrder(order.orderNo)"
+              >完成评价</el-button>
+              <el-button
+                v-if="order.status === 1 || order.status === 2"
+                type="warning"
+                size="small"
+                @click.stop="refundOrder(order.orderNo)"
+              >退款</el-button>
+              <el-button
                 size="small"
                 @click.stop="goDetail(order.orderNo)"
               >查看详情</el-button>
@@ -96,10 +114,13 @@ const total = ref(0)
 
 const statusMap = {
   0: { text: '待付款', type: 'warning' },
-  1: { text: '已付款', type: 'primary' },
-  2: { text: '已发货', type: '' },
-  3: { text: '已完成', type: 'success' },
-  4: { text: '已取消', type: 'info' }
+  1: { text: '待发货', type: 'primary' },
+  2: { text: '待收货', type: '' },
+  3: { text: '待评价', type: 'warning' },
+  4: { text: '已完成', type: 'success' },
+  5: { text: '已取消', type: 'info' },
+  6: { text: '已退款', type: 'danger' },
+  7: { text: '已过期', type: 'info' }
 }
 
 const getStatusText = (status) => statusMap[status]?.text || '未知'
@@ -137,6 +158,42 @@ const cancelOrder = (orderNo) => {
       const res = await api.put(`/orders/${orderNo}/cancel`)
       if (res.code === 200) {
         ElMessage.success('订单已取消')
+        fetchOrders()
+      }
+    })
+    .catch(() => {})
+}
+
+const confirmReceive = (orderNo) => {
+  ElMessageBox.confirm('确认已收到商品？', '确认收货', { type: 'info' })
+    .then(async () => {
+      const res = await api.put(`/orders/${orderNo}/confirm`)
+      if (res.code === 200) {
+        ElMessage.success('已确认收货')
+        fetchOrders()
+      }
+    })
+    .catch(() => {})
+}
+
+const completeOrder = (orderNo) => {
+  ElMessageBox.confirm('确认完成评价？', '完成订单', { type: 'info' })
+    .then(async () => {
+      const res = await api.put(`/orders/${orderNo}/complete`)
+      if (res.code === 200) {
+        ElMessage.success('订单已完成')
+        fetchOrders()
+      }
+    })
+    .catch(() => {})
+}
+
+const refundOrder = (orderNo) => {
+  ElMessageBox.confirm('确定要申请退款吗？', '申请退款', { type: 'warning' })
+    .then(async () => {
+      const res = await api.put(`/orders/${orderNo}/refund`)
+      if (res.code === 200) {
+        ElMessage.success('退款成功')
         fetchOrders()
       }
     })

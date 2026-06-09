@@ -76,4 +76,9 @@ public class AdminController {
     public Result<Void> deliverOrder(@PathVariable String orderNo) {
         return orderService.deliverOrder(orderNo);
     }
+
+    @PutMapping("/orders/{orderNo}/refund")
+    public Result<Void> refundOrder(@PathVariable String orderNo) {
+        return orderService.adminRefundOrder(orderNo);
+    }
 }

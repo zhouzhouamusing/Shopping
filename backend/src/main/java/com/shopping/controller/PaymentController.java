@@ -43,4 +43,23 @@ public class PaymentController {
         Long userId = Long.parseLong(authentication.getPrincipal().toString());
         return paymentService.getPaymentByOrderNo(userId, orderNo);
     }
+
+    @GetMapping("/{paymentNo}/query")
+    public Result<PaymentResponse> queryChannelStatus(Authentication authentication,
+                                                       @PathVariable String paymentNo) {
+        Long userId = Long.parseLong(authentication.getPrincipal().toString());
+        return paymentService.queryChannelStatus(userId, paymentNo);
+    }
+
+    /**
+     * 支付渠道异步回调入口（无需认证，由第三方支付平台调用）
+     * 生产环境需配置IP白名单和签名验证
+     */
+    @PostMapping("/callback/{paymentNo}")
+    public Result<String> paymentCallback(@PathVariable String paymentNo,
+                                           @RequestParam String status,
+                                           @RequestParam(required = false) String tradeNo,
+                                           @RequestParam(required = false) String sign) {
+        return paymentService.receiveChannelCallback(paymentNo, status, tradeNo, sign);
+    }
 }

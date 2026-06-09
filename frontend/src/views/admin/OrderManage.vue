@@ -5,10 +5,13 @@
       <el-radio-group v-model="statusFilter" @change="fetchOrders">
         <el-radio-button :value="null">全部</el-radio-button>
         <el-radio-button :value="0">待付款</el-radio-button>
-        <el-radio-button :value="1">已付款</el-radio-button>
-        <el-radio-button :value="2">已发货</el-radio-button>
-        <el-radio-button :value="3">已完成</el-radio-button>
-        <el-radio-button :value="4">已取消</el-radio-button>
+        <el-radio-button :value="1">待发货</el-radio-button>
+        <el-radio-button :value="2">待收货</el-radio-button>
+        <el-radio-button :value="3">待评价</el-radio-button>
+        <el-radio-button :value="4">已完成</el-radio-button>
+        <el-radio-button :value="5">已取消</el-radio-button>
+        <el-radio-button :value="6">已退款</el-radio-button>
+        <el-radio-button :value="7">已过期</el-radio-button>
       </el-radio-group>
     </div>
 
@@ -27,6 +30,11 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="支付方式" width="100">
+        <template #default="{ row }">
+          {{ getMethodName(row.paymentMethod) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="receiverName" label="收货人" width="100" />
       <el-table-column prop="receiverPhone" label="电话" width="120" />
       <el-table-column label="创建时间" width="170">
@@ -34,7 +42,7 @@
           {{ formatTime(row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120" fixed="right">
+      <el-table-column label="操作" width="140" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.status === 1"
@@ -43,6 +51,13 @@
             size="small"
             @click="handleDeliver(row)"
           >发货</el-button>
+          <el-button
+            v-if="row.status === 1 || row.status === 2"
+            text
+            type="warning"
+            size="small"
+            @click="handleRefund(row)"
+          >退款</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -73,15 +88,23 @@ const statusFilter = ref(null)
 
 const statusMap = {
   0: { text: '待付款', type: 'warning' },
-  1: { text: '已付款', type: 'primary' },
-  2: { text: '已发货', type: '' },
-  3: { text: '已完成', type: 'success' },
-  4: { text: '已取消', type: 'info' }
+  1: { text: '待发货', type: 'primary' },
+  2: { text: '待收货', type: '' },
+  3: { text: '待评价', type: 'warning' },
+  4: { text: '已完成', type: 'success' },
+  5: { text: '已取消', type: 'info' },
+  6: { text: '已退款', type: 'danger' },
+  7: { text: '已过期', type: 'info' }
 }
 
 const getStatusText = (s) => statusMap[s]?.text || '未知'
 const getStatusType = (s) => statusMap[s]?.type || ''
 const formatTime = (t) => t ? new Date(t).toLocaleString('zh-CN') : ''
+const getMethodName = (method) => {
+  if (!method) return '-'
+  const map = { ALIPAY: '支付宝', WECHAT: '微信支付', BANK_CARD: '银行卡', COD: '货到付款' }
+  return map[method] || method
+}
 
 const fetchOrders = async () => {
   loading.value = true
@@ -104,6 +127,18 @@ const handleDeliver = (row) => {
       const res = await api.put(`/admin/orders/${row.orderNo}/deliver`)
       if (res.code === 200) {
         ElMessage.success('发货成功')
+        fetchOrders()
+      }
+    })
+    .catch(() => {})
+}
+
+const handleRefund = (row) => {
+  ElMessageBox.confirm(`确认对订单 ${row.orderNo} 退款？库存将恢复。`, '退款确认', { type: 'warning' })
+    .then(async () => {
+      const res = await api.put(`/admin/orders/${row.orderNo}/refund`)
+      if (res.code === 200) {
+        ElMessage.success('退款成功')
         fetchOrders()
       }
     })

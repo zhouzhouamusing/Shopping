@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `order_no` VARCHAR(50) NOT NULL COMMENT '订单编号',
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
     `total_amount` DECIMAL(10,2) NOT NULL COMMENT '订单总金额',
-    `status` TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态：0-待付款 1-已付款 2-已发货 3-已完成 4-已取消',
+    `status` TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态：0-待付款 1-待发货 2-待收货 3-待评价 4-已完成 5-已取消 6-已退款 7-已过期',
     `receiver_name` VARCHAR(50) DEFAULT NULL COMMENT '收货人姓名',
     `receiver_phone` VARCHAR(20) DEFAULT NULL COMMENT '收货人电话',
     `receiver_address` VARCHAR(500) DEFAULT NULL COMMENT '收货地址',
