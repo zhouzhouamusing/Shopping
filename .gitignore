@@ -1,0 +1,25 @@
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Java
+backend/target/
+*.class
+*.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+uploads/
+
+# Env
+.env
+.env.local
