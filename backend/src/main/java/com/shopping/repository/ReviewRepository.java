@@ -9,6 +9,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    Page<Review> findByProductIdAndStatus(Long productId, String status, Pageable pageable);
+
+    Page<Review> findByProductIdAndStatusAndRating(Long productId, String status, Integer rating, Pageable pageable);
+
     Page<Review> findByProductIdAndStatusOrderByCreatedAtDesc(Long productId, String status, Pageable pageable);
 
     Page<Review> findByProductIdAndStatusAndRatingOrderByCreatedAtDesc(Long productId, String status, Integer rating, Pageable pageable);

@@ -27,7 +27,6 @@
           <el-button v-if="order.status === 0" type="primary" @click="payOrder">立即付款</el-button>
           <el-button v-if="order.status === 0" @click="cancelOrder">取消订单</el-button>
           <el-button v-if="order.status === 2" type="primary" @click="confirmReceive">确认收货</el-button>
-          <el-button v-if="order.status === 3 && !showReviewForm" type="primary" @click="showReviewForm = true">发表评价</el-button>
           <el-button v-if="order.status === 1 || order.status === 2" type="warning" @click="refundOrder">申请退款</el-button>
         </div>
       </div>
@@ -74,7 +73,7 @@
       </div>
 
       <!-- 评价区域 -->
-      <div class="info-card review-section" v-if="order.status === 3 && showReviewForm">
+      <div class="info-card review-section" v-if="order.status === 3">
         <h3>发表评价</h3>
         <div v-for="item in order.orderItems" :key="item.id" class="review-form-item">
           <div class="review-product-header">
@@ -121,7 +120,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -132,7 +131,6 @@ const router = useRouter()
 const userStore = useUserStore()
 const order = ref(null)
 const loading = ref(true)
-const showReviewForm = ref(false)
 const submittingReview = ref(false)
 const reviewForms = reactive({})
 
@@ -246,7 +244,6 @@ const submitReviews = async () => {
 
     await api.put(`/orders/${order.value.orderNo}/complete`)
     ElMessage.success('评价提交成功')
-    showReviewForm.value = false
     fetchOrder()
   } finally {
     submittingReview.value = false

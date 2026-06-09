@@ -125,9 +125,9 @@
           <span v-else class="no-review-hint">暂无评价</span>
         </div>
 
-        <!-- 评分筛选 -->
+        <!-- 评分筛选与排序 -->
         <div class="rating-filter" v-if="product.reviewCount">
-          <el-radio-group v-model="ratingFilter" size="small" @change="fetchReviews">
+          <el-radio-group v-model="ratingFilter" size="small" @change="onFilterChange">
             <el-radio-button :value="0">全部</el-radio-button>
             <el-radio-button :value="5">5星</el-radio-button>
             <el-radio-button :value="4">4星</el-radio-button>
@@ -135,6 +135,12 @@
             <el-radio-button :value="2">2星</el-radio-button>
             <el-radio-button :value="1">1星</el-radio-button>
           </el-radio-group>
+          <el-select v-model="reviewSort" size="small" class="sort-select" @change="onFilterChange">
+            <el-option value="newest" label="最新评价" />
+            <el-option value="oldest" label="最早评价" />
+            <el-option value="rating_high" label="评分从高到低" />
+            <el-option value="rating_low" label="评分从低到高" />
+          </el-select>
         </div>
 
         <!-- 评价列表 -->
@@ -211,6 +217,7 @@ const reviewPage = ref(1)
 const reviewPageSize = ref(10)
 const reviewTotal = ref(0)
 const ratingFilter = ref(0)
+const reviewSort = ref('newest')
 
 const fetchProduct = async () => {
   loading.value = true
@@ -225,7 +232,7 @@ const fetchProduct = async () => {
 }
 
 const fetchReviews = async () => {
-  const params = { page: reviewPage.value - 1, size: reviewPageSize.value }
+  const params = { page: reviewPage.value - 1, size: reviewPageSize.value, sort: reviewSort.value }
   if (ratingFilter.value > 0) params.rating = ratingFilter.value
   try {
     const res = await api.get(`/products/${route.params.id}/reviews`, { params })
@@ -236,6 +243,11 @@ const fetchReviews = async () => {
   } catch (e) {
     // silently fail
   }
+}
+
+const onFilterChange = () => {
+  reviewPage.value = 1
+  fetchReviews()
 }
 
 const formatTime = (time) => {
@@ -560,6 +572,15 @@ onMounted(() => {
 
 .rating-filter {
   margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sort-select {
+  width: 150px;
 }
 
 .reviews-list {

@@ -46,7 +46,8 @@ public class ProductController {
     public Result<Page<Review>> getProductReviews(@PathVariable Long id,
                                                    @RequestParam(required = false) Integer rating,
                                                    @RequestParam(defaultValue = "0") int page,
-                                                   @RequestParam(defaultValue = "10") int size) {
-        return reviewService.getProductReviews(id, rating, page, size);
+                                                   @RequestParam(defaultValue = "10") int size,
+                                                   @RequestParam(defaultValue = "newest") String sort) {
+        return reviewService.getProductReviews(id, rating, page, size, sort);
     }
 }

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,14 +76,31 @@ public class ReviewService {
         return Result.success(review);
     }
 
-    public Result<Page<Review>> getProductReviews(Long productId, Integer rating, int page, int size) {
+    public Result<Page<Review>> getProductReviews(Long productId, Integer rating, int page, int size, String sort) {
+        Sort sortOrder;
+        switch (sort) {
+            case "oldest":
+                sortOrder = Sort.by(Sort.Direction.ASC, "createdAt");
+                break;
+            case "rating_high":
+                sortOrder = Sort.by(Sort.Direction.DESC, "rating").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+                break;
+            case "rating_low":
+                sortOrder = Sort.by(Sort.Direction.ASC, "rating").and(Sort.by(Sort.Direction.DESC, "createdAt"));
+                break;
+            default:
+                sortOrder = Sort.by(Sort.Direction.DESC, "createdAt");
+                break;
+        }
+
+        PageRequest pageRequest = PageRequest.of(page, size, sortOrder);
         Page<Review> reviews;
         if (rating != null && rating >= 1 && rating <= 5) {
-            reviews = reviewRepository.findByProductIdAndStatusAndRatingOrderByCreatedAtDesc(
-                    productId, "APPROVED", rating, PageRequest.of(page, size));
+            reviews = reviewRepository.findByProductIdAndStatusAndRating(
+                    productId, "APPROVED", rating, pageRequest);
         } else {
-            reviews = reviewRepository.findByProductIdAndStatusOrderByCreatedAtDesc(
-                    productId, "APPROVED", PageRequest.of(page, size));
+            reviews = reviewRepository.findByProductIdAndStatus(
+                    productId, "APPROVED", pageRequest);
         }
 
         reviews.getContent().forEach(this::enrichReview);

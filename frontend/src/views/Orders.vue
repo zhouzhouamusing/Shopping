@@ -62,8 +62,8 @@
                 v-if="order.status === 3"
                 type="primary"
                 size="small"
-                @click.stop="completeOrder(order.orderNo)"
-              >完成评价</el-button>
+                @click.stop="goReview(order.orderNo)"
+              >去评价</el-button>
               <el-button
                 v-if="order.status === 1 || order.status === 2"
                 type="warning"
@@ -176,16 +176,8 @@ const confirmReceive = (orderNo) => {
     .catch(() => {})
 }
 
-const completeOrder = (orderNo) => {
-  ElMessageBox.confirm('确认完成评价？', '完成订单', { type: 'info' })
-    .then(async () => {
-      const res = await api.put(`/orders/${orderNo}/complete`)
-      if (res.code === 200) {
-        ElMessage.success('订单已完成')
-        fetchOrders()
-      }
-    })
-    .catch(() => {})
+const goReview = (orderNo) => {
+  router.push({ name: 'OrderDetail', params: { orderNo } })
 }
 
 const refundOrder = (orderNo) => {
