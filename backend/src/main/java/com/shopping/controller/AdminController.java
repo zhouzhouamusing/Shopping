@@ -4,7 +4,9 @@ import com.shopping.dto.ProductRequest;
 import com.shopping.dto.Result;
 import com.shopping.entity.Order;
 import com.shopping.entity.Product;
+import com.shopping.service.OrderEventQueueService;
 import com.shopping.service.OrderService;
+import com.shopping.service.PriceCircuitBreakerService;
 import com.shopping.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,8 @@ public class AdminController {
 
     private final ProductService productService;
     private final OrderService orderService;
+    private final PriceCircuitBreakerService priceCircuitBreaker;
+    private final OrderEventQueueService orderEventQueue;
 
     // ==================== 商品管理 ====================
 
@@ -80,5 +84,37 @@ public class AdminController {
     @PutMapping("/orders/{orderNo}/refund")
     public Result<Void> refundOrder(@PathVariable String orderNo) {
         return orderService.adminRefundOrder(orderNo);
+    }
+
+    // ==================== 熔断器管理 ====================
+
+    @GetMapping("/circuit-breaker/price/status")
+    public Result<PriceCircuitBreakerService.CircuitBreakerStatus> getPriceCircuitBreakerStatus() {
+        return Result.success(priceCircuitBreaker.getStatus());
+    }
+
+    @PutMapping("/circuit-breaker/price/reset")
+    public Result<Void> resetPriceCircuitBreaker() {
+        priceCircuitBreaker.reset();
+        return Result.success();
+    }
+
+    // ==================== 事件队列监控 ====================
+
+    @GetMapping("/event-queue/monitoring")
+    public Result<OrderEventQueueService.MonitoringData> getEventQueueMonitoring() {
+        return Result.success(orderEventQueue.getMonitoringData());
+    }
+
+    @GetMapping("/event-queue/dead-letters")
+    public Result<java.util.List<OrderEventQueueService.OrderStatusEvent>> getDeadLetterEvents(
+            @RequestParam(defaultValue = "20") int limit) {
+        return Result.success(orderEventQueue.getDeadLetterEvents(limit));
+    }
+
+    @PutMapping("/event-queue/retry-dead-letters")
+    public Result<Integer> retryDeadLetterEvents() {
+        int count = orderEventQueue.retryDeadLetterEvents();
+        return Result.success(count);
     }
 }

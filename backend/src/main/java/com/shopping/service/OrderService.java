@@ -38,6 +38,8 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
+    private final PriceCircuitBreakerService priceCircuitBreaker;
+    private final OrderEventQueueService eventQueue;
 
     @Retryable(
         retryFor = {PessimisticLockingFailureException.class},
@@ -65,6 +67,15 @@ public class OrderService {
                 return Result.error(400, "商品 " + product.getName() + " 库存不足");
             }
 
+            // 价格熔断校验
+            PriceCircuitBreakerService.PriceValidationResult priceCheck =
+                    priceCircuitBreaker.validatePrice(product.getPrice(), "下单商品:" + product.getName());
+            if (!priceCheck.isValid()) {
+                log.error("价格熔断拦截下单: product={}, price={}, reason={}",
+                        product.getName(), product.getPrice(), priceCheck.getMessage());
+                return Result.error(400, priceCheck.getMessage());
+            }
+
             product.setStock(product.getStock() - cartItem.getQuantity());
             product.setSales(product.getSales() + cartItem.getQuantity());
             productRepository.save(product);
@@ -80,6 +91,15 @@ public class OrderService {
             orderItems.add(orderItem);
 
             totalAmount = totalAmount.add(itemTotal);
+        }
+
+        // 订单总金额熔断校验
+        PriceCircuitBreakerService.PriceValidationResult amountCheck =
+                priceCircuitBreaker.validateOrderAmount(totalAmount, orderNo);
+        if (!amountCheck.isValid()) {
+            log.error("订单金额熔断拦截: orderNo={}, amount={}, reason={}",
+                    orderNo, totalAmount, amountCheck.getMessage());
+            return Result.error(400, amountCheck.getMessage());
         }
 
         Order order = new Order();
@@ -141,6 +161,7 @@ public class OrderService {
         order.setStatus(5);
         orderRepository.save(order);
         restoreStock(order.getId());
+        eventQueue.publishStatusChangeEvent(orderNo, 0, 5, "user:" + userId, "用户主动取消");
         return Result.success();
     }
 
@@ -160,6 +181,7 @@ public class OrderService {
         order.setStatus(1);
         order.setPaymentTime(LocalDateTime.now());
         orderRepository.save(order);
+        eventQueue.publishStatusChangeEvent(orderNo, 0, 1, "user:" + userId, "支付完成");
         return Result.success();
     }
 
@@ -179,6 +201,7 @@ public class OrderService {
         order.setStatus(3);
         order.setFinishTime(LocalDateTime.now());
         orderRepository.save(order);
+        eventQueue.publishStatusChangeEvent(orderNo, 2, 3, "user:" + userId, "确认收货");
         return Result.success();
     }
 
@@ -197,6 +220,7 @@ public class OrderService {
 
         order.setStatus(4);
         orderRepository.save(order);
+        eventQueue.publishStatusChangeEvent(orderNo, 3, 4, "user:" + userId, "完成评价");
         return Result.success();
     }
 
@@ -209,14 +233,15 @@ public class OrderService {
         if (!order.getUserId().equals(userId)) {
             return Result.error(403, "无权操作此订单");
         }
-        if (order.getStatus() != 1 && order.getStatus() != 2) {
+        int fromStatus = order.getStatus();
+        if (fromStatus != 1 && fromStatus != 2) {
             return Result.error(400, "当前状态不可申请退款");
         }
 
         order.setStatus(6);
         orderRepository.save(order);
         restoreStock(order.getId());
-        log.info("订单退款完成: orderNo={}", orderNo);
+        eventQueue.publishStatusChangeEvent(orderNo, fromStatus, 6, "user:" + userId, "用户申请退款");
         return Result.success();
     }
 
@@ -243,6 +268,7 @@ public class OrderService {
         order.setStatus(2);
         order.setDeliveryTime(LocalDateTime.now());
         orderRepository.save(order);
+        eventQueue.publishStatusChangeEvent(orderNo, 1, 2, "admin", "管理员发货");
         return Result.success();
     }
 
@@ -252,13 +278,15 @@ public class OrderService {
         if (order == null) {
             return Result.error(404, "订单不存在");
         }
-        if (order.getStatus() != 1 && order.getStatus() != 2) {
+        int fromStatus = order.getStatus();
+        if (fromStatus != 1 && fromStatus != 2) {
             return Result.error(400, "当前状态不可退款");
         }
 
         order.setStatus(6);
         orderRepository.save(order);
         restoreStock(order.getId());
+        eventQueue.publishStatusChangeEvent(orderNo, fromStatus, 6, "admin", "管理员退款");
         log.info("管理员退款: orderNo={}", orderNo);
         return Result.success();
     }

@@ -311,6 +311,32 @@ a {
    Element Plus 全局主题覆盖 - 蓝绿色
    ======================================== */
 
+/* 根级 CSS 变量覆盖 */
+:root {
+  --el-color-primary: #00d4aa;
+  --el-color-primary-light-3: #33e0bd;
+  --el-color-primary-light-5: #80e9d4;
+  --el-color-primary-light-7: #b3f1e6;
+  --el-color-primary-light-8: #ccf6ef;
+  --el-color-primary-light-9: #e6fbf7;
+  --el-color-primary-dark-2: #00b892;
+}
+
+/* 默认按钮 hover 使用蓝绿色 */
+.el-button:not(.el-button--primary):not(.el-button--success):not(.el-button--warning):not(.el-button--danger):not(.el-button--info) {
+  &:hover,
+  &:focus {
+    color: #00d4aa;
+    border-color: #b3f1e6;
+    background-color: #e6fbf7;
+  }
+
+  &:active {
+    color: #00b892;
+    border-color: #00b892;
+  }
+}
+
 /* 主要按钮 */
 .el-button--primary {
   --el-button-bg-color: #00d4aa;
@@ -323,6 +349,36 @@ a {
   --el-button-disabled-border-color: #80e9d4;
 }
 
+.el-button--primary.is-plain {
+  --el-button-bg-color: #e6fbf7;
+  --el-button-border-color: #80e9d4;
+  --el-button-text-color: #00d4aa;
+  --el-button-hover-bg-color: #00d4aa;
+  --el-button-hover-border-color: #00d4aa;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-bg-color: #00b892;
+}
+
+/* 成功按钮 - 同主色 */
+.el-button--success {
+  --el-button-bg-color: #10b981;
+  --el-button-border-color: #10b981;
+  --el-button-hover-bg-color: #059669;
+  --el-button-hover-border-color: #059669;
+  --el-button-active-bg-color: #047857;
+  --el-button-active-border-color: #047857;
+}
+
+/* 信息按钮 */
+.el-button--info {
+  --el-button-bg-color: #64748b;
+  --el-button-border-color: #64748b;
+  --el-button-hover-bg-color: #475569;
+  --el-button-hover-border-color: #475569;
+  --el-button-active-bg-color: #334155;
+  --el-button-active-border-color: #334155;
+}
+
 /* 警告按钮 */
 .el-button--warning {
   --el-button-bg-color: #f59e0b;
@@ -333,11 +389,53 @@ a {
   --el-button-active-border-color: #b45309;
 }
 
-/* 链接和文字按钮 */
+/* 危险按钮 */
+.el-button--danger {
+  --el-button-bg-color: #ef4444;
+  --el-button-border-color: #ef4444;
+  --el-button-hover-bg-color: #dc2626;
+  --el-button-hover-border-color: #dc2626;
+  --el-button-active-bg-color: #b91c1c;
+  --el-button-active-border-color: #b91c1c;
+}
+
+/* 文字按钮和链接按钮 */
 .el-button--primary.is-text,
 .el-button--primary.is-link {
   --el-button-text-color: #00d4aa;
   --el-button-hover-text-color: #00b892;
+  --el-button-hover-bg-color: rgba(0, 212, 170, 0.06);
+}
+
+.el-button.is-text:hover,
+.el-button.is-link:hover {
+  color: #00d4aa;
+}
+
+/* 所有按钮圆角统一 */
+.el-button {
+  --el-button-border-radius: 8px;
+  border-radius: 8px;
+  transition: all 0.25s ease;
+}
+
+.el-button--large {
+  --el-button-border-radius: 10px;
+  border-radius: 10px;
+}
+
+.el-button--small {
+  --el-button-border-radius: 6px;
+  border-radius: 6px;
+}
+
+/* 按钮组 */
+.el-button-group .el-button--primary:first-child {
+  border-right-color: rgba(255, 255, 255, 0.5);
+}
+
+.el-button-group .el-button--primary:last-child {
+  border-left-color: rgba(255, 255, 255, 0.5);
 }
 
 /* 标签 */
@@ -351,11 +449,14 @@ a {
 .el-radio-button__original-radio:checked + .el-radio-button__inner {
   background-color: #00d4aa;
   border-color: #00d4aa;
+  box-shadow: -1px 0 0 0 #00d4aa;
 }
 
 /* 对话框 */
 .el-dialog {
   --el-dialog-border-radius: 16px;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .el-dialog__header {
@@ -376,7 +477,15 @@ a {
 .el-message-box {
   --el-messagebox-border-radius: 16px;
   border-radius: 16px;
-  padding: 20px;
+  padding: 24px;
+
+  .el-message-box__header {
+    padding-bottom: 12px;
+  }
+
+  .el-message-box__title {
+    font-weight: 600;
+  }
 
   .el-message-box__btns {
     .el-button--primary {
@@ -388,6 +497,11 @@ a {
   }
 }
 
+/* 通知弹窗 */
+.el-notification {
+  border-radius: 12px;
+}
+
 /* 分页 */
 .el-pagination {
   --el-pagination-button-color: var(--text-primary);
@@ -395,6 +509,10 @@ a {
 
   .is-active {
     background-color: #00d4aa !important;
+  }
+
+  button:hover {
+    color: #00d4aa;
   }
 }
 
@@ -405,6 +523,21 @@ a {
 }
 
 .el-checkbox__input.is-checked + .el-checkbox__label {
+  color: #00d4aa;
+}
+
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+  background-color: #00d4aa;
+  border-color: #00d4aa;
+}
+
+/* 单选框 */
+.el-radio__input.is-checked .el-radio__inner {
+  background-color: #00d4aa;
+  border-color: #00d4aa;
+}
+
+.el-radio__input.is-checked + .el-radio__label {
   color: #00d4aa;
 }
 
@@ -433,6 +566,15 @@ a {
   box-shadow: 0 0 0 1px #00d4aa !important;
 }
 
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px #00d4aa !important;
+}
+
+/* 选择器 */
+.el-select .el-input.is-focus .el-input__wrapper {
+  box-shadow: 0 0 0 1px #00d4aa !important;
+}
+
 /* 开关 */
 .el-switch.is-checked .el-switch__core {
   background-color: #00d4aa;
@@ -446,9 +588,37 @@ a {
   --el-message-text-color: #00b892;
 }
 
+/* 链接 */
+.el-link--primary {
+  --el-link-text-color: #00d4aa;
+  --el-link-hover-text-color: #00b892;
+}
+
+/* 表格排序激活 */
+.el-table .sort-caret.ascending {
+  border-bottom-color: #00d4aa;
+}
+
+.el-table .sort-caret.descending {
+  border-top-color: #00d4aa;
+}
+
 /* 菜单激活项 */
 .el-menu-item.is-active {
   color: #00d4aa !important;
+}
+
+/* Tabs */
+.el-tabs__active-bar {
+  background-color: #00d4aa;
+}
+
+.el-tabs__item.is-active {
+  color: #00d4aa;
+}
+
+.el-tabs__item:hover {
+  color: #00d4aa;
 }
 
 /* Badge */
@@ -463,4 +633,16 @@ a {
 
 .el-loading-spinner .path {
   stroke: #00d4aa;
+}
+
+/* 数字输入框按钮 */
+.el-input-number__decrease:hover,
+.el-input-number__increase:hover {
+  color: #00d4aa;
+}
+
+/* 下拉菜单激活项 */
+.el-dropdown-menu__item:not(.is-disabled):focus {
+  background-color: #e6fbf7;
+  color: #00d4aa;
 }
