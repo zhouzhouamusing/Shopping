@@ -158,7 +158,7 @@ const getParticleStyle = (i) => ({
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: #0f0f23;
+  background: #0a192f;
 }
 
 /* 粒子背景 */
@@ -170,7 +170,7 @@ const getParticleStyle = (i) => ({
 
 .particle {
   position: absolute;
-  background: rgba(255, 77, 79, 0.4);
+  background: rgba(0, 212, 170, 0.4);
   border-radius: 50%;
   animation: float infinite ease-in-out;
 }
@@ -193,7 +193,7 @@ const getParticleStyle = (i) => ({
 .orb-1 {
   width: 400px;
   height: 400px;
-  background: #ff4d4f;
+  background: #00d4aa;
   top: -100px;
   right: -100px;
   animation-delay: 0s;
@@ -202,7 +202,7 @@ const getParticleStyle = (i) => ({
 .orb-2 {
   width: 300px;
   height: 300px;
-  background: #6c63ff;
+  background: #0ea5e9;
   bottom: -50px;
   left: -50px;
   animation-delay: 2s;
@@ -241,7 +241,7 @@ const getParticleStyle = (i) => ({
 /* 品牌区域 */
 .auth-brand {
   flex: 1;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(135deg, #0a192f 0%, #0f2744 50%, #132f4c 100%);
   padding: 48px 40px;
   display: flex;
   align-items: center;
@@ -253,8 +253,8 @@ const getParticleStyle = (i) => ({
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 30% 70%, rgba(255, 77, 79, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 70% 30%, rgba(108, 99, 255, 0.15) 0%, transparent 50%);
+    background: radial-gradient(circle at 30% 70%, rgba(0, 212, 170, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 50%);
   }
 
   @media (max-width: 768px) {
@@ -369,7 +369,7 @@ const getParticleStyle = (i) => ({
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 77, 79, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
   }
 }
 

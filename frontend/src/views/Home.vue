@@ -241,7 +241,7 @@ onMounted(async () => {
   position: relative;
   padding: 80px 24px 60px;
   overflow: hidden;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+  background: linear-gradient(135deg, #0a192f 0%, #0f2744 40%, #132f4c 100%);
 }
 
 .hero-bg {
@@ -252,8 +252,8 @@ onMounted(async () => {
 .hero-gradient {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 0%, rgba(255, 77, 79, 0.15) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 80%, rgba(108, 99, 255, 0.1) 0%, transparent 40%);
+  background: radial-gradient(ellipse at 50% 0%, rgba(0, 212, 170, 0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 40%);
 }
 
 .hero-particles {
@@ -295,7 +295,7 @@ onMounted(async () => {
     display: block;
     font-size: 48px;
     font-weight: 800;
-    background: linear-gradient(135deg, #ff4d4f, #ff7875, #ffa940);
+    background: linear-gradient(135deg, #00d4aa, #33e0bd, #0ea5e9);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-size: 200% 200%;
@@ -325,8 +325,8 @@ onMounted(async () => {
 
   :deep(.el-input-group__append) {
     border-radius: 0 28px 28px 0;
-    background: linear-gradient(135deg, #6c63ff, #8b83ff);
-    border-color: #6c63ff;
+    background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+    border-color: #0ea5e9;
     padding: 0 24px;
   }
 }
@@ -339,8 +339,8 @@ onMounted(async () => {
 
   .hot-tag {
     padding: 5px 16px;
-    background: rgba(108, 99, 255, 0.15);
-    border: 1px solid rgba(108, 99, 255, 0.3);
+    background: rgba(14, 165, 233, 0.15);
+    border: 1px solid rgba(14, 165, 233, 0.3);
     border-radius: 20px;
     color: rgba(255, 255, 255, 0.9);
     font-size: 13px;
@@ -349,11 +349,11 @@ onMounted(async () => {
     backdrop-filter: blur(4px);
 
     &:hover {
-      background: linear-gradient(135deg, #6c63ff, #8b83ff);
-      border-color: #6c63ff;
+      background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+      border-color: #0ea5e9;
       color: white;
       transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
     }
   }
 }
@@ -392,13 +392,13 @@ onMounted(async () => {
   transition: var(--transition);
 
   &:hover {
-    background: linear-gradient(135deg, #f0f0ff, #e8f4ff);
+    background: linear-gradient(135deg, #ecfdf5, #e0f7fa);
     transform: translateY(-4px);
 
     .cat-icon {
-      background: linear-gradient(135deg, #6c63ff, #8b83ff);
+      background: linear-gradient(135deg, #0ea5e9, #38bdf8);
       color: white;
-      box-shadow: 0 6px 20px rgba(108, 99, 255, 0.3);
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3);
     }
   }
 
@@ -406,11 +406,11 @@ onMounted(async () => {
     width: 56px;
     height: 56px;
     border-radius: 16px;
-    background: linear-gradient(135deg, #eef0ff, #e8ecff);
+    background: linear-gradient(135deg, #ecfdf5, #e0f7fa);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6c63ff;
+    color: #0ea5e9;
     transition: var(--transition);
   }
 

@@ -268,7 +268,7 @@ onMounted(fetchProduct)
 }
 
 .price-block {
-  background: linear-gradient(135deg, #fff5f5, #fff0f0);
+  background: linear-gradient(135deg, #f0fdf9, #ecfdf5);
   padding: 20px 24px;
   border-radius: var(--radius);
 }
@@ -371,7 +371,7 @@ onMounted(fetchProduct)
     border-color: var(--primary);
 
     &:hover {
-      background: #fff5f5;
+      background: #f0fdf9;
     }
   }
 }

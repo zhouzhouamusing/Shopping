@@ -1,15 +1,16 @@
 package com.shopping.repository;
 
 import com.shopping.entity.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-/**
- * 商品数据访问层
- */
+import java.util.Optional;
+
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findByStatus(Integer status, Pageable pageable);
@@ -24,4 +25,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT p FROM Product p WHERE p.status = 1 ORDER BY p.createdAt DESC")
     Page<Product> findNewProducts(Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    Optional<Product> findByIdForUpdate(@Param("id") Long id);
 }

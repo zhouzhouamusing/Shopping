@@ -243,8 +243,8 @@ onUnmounted(() => {
   max-width: 560px;
 
   :deep(.el-input-group__append) {
-    background: linear-gradient(135deg, #6c63ff, #8b83ff);
-    border-color: #6c63ff;
+    background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+    border-color: #0ea5e9;
     color: white;
 
     .el-button {
@@ -259,7 +259,7 @@ onUnmounted(() => {
     background: #f8f9fc;
 
     &:focus-within {
-      box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.4);
+      box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.4);
       background: white;
     }
   }
@@ -309,13 +309,13 @@ onUnmounted(() => {
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(255, 77, 79, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 212, 170, 0.3);
     background: var(--gradient-primary);
   }
 }
 
 .admin-btn {
-  background: linear-gradient(135deg, #6c63ff, #8b83ff);
+  background: linear-gradient(135deg, #0ea5e9, #38bdf8);
   color: white !important;
   padding: 8px 16px;
   border-radius: 20px;
@@ -323,8 +323,8 @@ onUnmounted(() => {
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 15px rgba(108, 99, 255, 0.35);
-    background: linear-gradient(135deg, #6c63ff, #8b83ff);
+    box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
+    background: linear-gradient(135deg, #0ea5e9, #38bdf8);
   }
 }
 

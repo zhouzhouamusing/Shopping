@@ -42,6 +42,12 @@ public class Order {
     @Column(length = 500)
     private String remark;
 
+    @Column(name = "payment_method", length = 20)
+    private String paymentMethod;
+
+    @Column(name = "payment_no", length = 50)
+    private String paymentNo;
+
     @Column(name = "payment_time")
     private LocalDateTime paymentTime;
 

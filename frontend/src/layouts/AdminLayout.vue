@@ -11,9 +11,9 @@
       <el-menu
         :default-active="activeMenu"
         router
-        background-color="#1a1a2e"
+        background-color="#0f2744"
         text-color="rgba(255,255,255,0.7)"
-        active-text-color="#ff4d4f"
+        active-text-color="#00d4aa"
       >
         <el-menu-item index="/admin">
           <el-icon><DataAnalysis /></el-icon>
@@ -86,7 +86,7 @@ const handleLogout = () => {
 
 .sidebar {
   width: 220px;
-  background: #1a1a2e;
+  background: #0f2744;
   display: flex;
   flex-direction: column;
   position: fixed;

@@ -198,7 +198,7 @@ const submitOrder = async () => {
       ElMessage.success('订单创建成功！')
       showCheckout.value = false
       cartStore.fetchCart()
-      router.push({ name: 'OrderDetail', params: { orderNo: res.data.orderNo } })
+      router.push({ name: 'Payment', params: { orderNo: res.data.orderNo } })
     } else {
       ElMessage.error(res.message)
     }

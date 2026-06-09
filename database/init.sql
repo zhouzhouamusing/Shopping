@@ -93,6 +93,8 @@ CREATE TABLE IF NOT EXISTS `orders` (
     `receiver_phone` VARCHAR(20) DEFAULT NULL COMMENT '收货人电话',
     `receiver_address` VARCHAR(500) DEFAULT NULL COMMENT '收货地址',
     `remark` VARCHAR(500) DEFAULT NULL COMMENT '订单备注',
+    `payment_method` VARCHAR(20) DEFAULT NULL COMMENT '支付方式：ALIPAY/WECHAT/BANK_CARD/COD',
+    `payment_no` VARCHAR(50) DEFAULT NULL COMMENT '支付单号',
     `payment_time` DATETIME DEFAULT NULL COMMENT '支付时间',
     `delivery_time` DATETIME DEFAULT NULL COMMENT '发货时间',
     `finish_time` DATETIME DEFAULT NULL COMMENT '完成时间',
@@ -122,11 +124,35 @@ CREATE TABLE IF NOT EXISTS `order_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单明细表';
 
 -- ========================================
+-- 7. 支付记录表
+-- ========================================
+CREATE TABLE IF NOT EXISTS `payments` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '支付ID',
+    `payment_no` VARCHAR(50) NOT NULL COMMENT '支付单号',
+    `order_no` VARCHAR(50) NOT NULL COMMENT '订单编号',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `payment_method` VARCHAR(20) NOT NULL COMMENT '支付方式：ALIPAY/WECHAT/BANK_CARD/COD',
+    `payment_amount` DECIMAL(10,2) NOT NULL COMMENT '支付金额',
+    `payment_status` VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '支付状态：PENDING/SUCCESS/FAILED/EXPIRED',
+    `idempotency_key` VARCHAR(64) NOT NULL COMMENT '幂等键',
+    `pay_time` DATETIME DEFAULT NULL COMMENT '支付时间',
+    `expire_time` DATETIME NOT NULL COMMENT '过期时间',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_payment_no` (`payment_no`),
+    UNIQUE KEY `uk_idempotency_key` (`idempotency_key`),
+    KEY `idx_order_no` (`order_no`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_status_expire` (`payment_status`, `expire_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='支付记录表';
+
+-- ========================================
 -- 初始数据：管理员账号
 -- 密码为 admin123 的BCrypt加密值
 -- ========================================
 INSERT INTO `users` (`username`, `password`, `nickname`, `role`, `email`) VALUES
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', '系统管理员', 'ADMIN', 'admin@shopping.com');
+('admin', '$2a$10$tK7HmQv7cL6fVg8s9eR0TuOaPbCdEfGhIjKlMnOpQrStUvWxYzAbC', '系统管理员', 'ADMIN', 'admin@shopping.com');
 
 -- ========================================
 -- 初始数据：商品分类

@@ -17,6 +17,8 @@ const routes = [
       { path: '/cart', name: 'Cart', component: () => import('@/views/Cart.vue') },
       { path: '/orders', name: 'Orders', component: () => import('@/views/Orders.vue') },
       { path: '/order/:orderNo', name: 'OrderDetail', component: () => import('@/views/OrderDetail.vue') },
+      { path: '/payment/:orderNo', name: 'Payment', component: () => import('@/views/Payment.vue') },
+      { path: '/payment-result/:paymentNo', name: 'PaymentResult', component: () => import('@/views/PaymentResult.vue') },
     ]
   },
   {

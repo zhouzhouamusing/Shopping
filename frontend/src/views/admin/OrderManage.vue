@@ -17,7 +17,7 @@
       <el-table-column prop="orderNo" label="订单号" min-width="180" />
       <el-table-column prop="totalAmount" label="金额" width="100">
         <template #default="{ row }">
-          <span style="color: #ff4d4f; font-weight: 600;">¥{{ row.totalAmount }}</span>
+          <span style="color: var(--primary); font-weight: 600;">¥{{ row.totalAmount }}</span>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="100">

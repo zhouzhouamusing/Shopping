@@ -3,24 +3,24 @@
    ======================================== */
 
 :root {
-  --primary: #ff4d4f;
-  --primary-dark: #e63e3f;
-  --primary-light: #ff7875;
-  --secondary: #1a1a2e;
-  --accent: #6c63ff;
-  --accent-light: #8b83ff;
-  --bg-dark: #0f0f23;
+  --primary: #00d4aa;
+  --primary-dark: #00b892;
+  --primary-light: #33e0bd;
+  --secondary: #0f2744;
+  --accent: #0ea5e9;
+  --accent-light: #38bdf8;
+  --bg-dark: #0a192f;
   --bg-card: #ffffff;
   --bg-gray: #f7f8fa;
-  --text-primary: #1a1a2e;
+  --text-primary: #0f2744;
   --text-secondary: #666;
   --text-light: #999;
   --border: #ebeef5;
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --gradient-primary: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
-  --gradient-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  --gradient-accent: linear-gradient(135deg, #6c63ff 0%, #8b83ff 100%);
+  --gradient-primary: linear-gradient(135deg, #00d4aa 0%, #33e0bd 100%);
+  --gradient-dark: linear-gradient(135deg, #0a192f 0%, #0f2744 100%);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
   --radius: 12px;
   --radius-sm: 8px;
   --radius-lg: 20px;
@@ -114,10 +114,10 @@ a {
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 77, 79, 0.3);
+    box-shadow: 0 0 5px rgba(0, 212, 170, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(255, 77, 79, 0.6);
+    box-shadow: 0 0 20px rgba(0, 212, 170, 0.6);
   }
 }
 
@@ -171,7 +171,7 @@ a {
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 77, 79, 0.35);
+    box-shadow: 0 8px 25px rgba(0, 212, 170, 0.35);
   }
 
   &:active {

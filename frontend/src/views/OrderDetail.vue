@@ -97,12 +97,8 @@ const fetchOrder = async () => {
   }
 }
 
-const payOrder = async () => {
-  const res = await api.put(`/orders/${order.value.orderNo}/pay`)
-  if (res.code === 200) {
-    ElMessage.success('支付成功！')
-    fetchOrder()
-  }
+const payOrder = () => {
+  router.push({ name: 'Payment', params: { orderNo: order.value.orderNo } })
 }
 
 const cancelOrder = () => {

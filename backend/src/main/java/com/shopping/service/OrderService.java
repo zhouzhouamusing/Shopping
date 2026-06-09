@@ -5,8 +5,11 @@ import com.shopping.dto.Result;
 import com.shopping.entity.*;
 import com.shopping.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,9 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * 订单服务 - 处理订单创建、查询、状态变更
- */
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -29,26 +29,25 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
 
-    /**
-     * 创建订单（从购物车已选中商品）
-     */
-    @Transactional
+    @Retryable(
+        retryFor = {PessimisticLockingFailureException.class},
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 200, multiplier = 2)
+    )
+    @Transactional(rollbackFor = Exception.class)
     public Result<Order> createOrder(Long userId, OrderRequest request) {
-        // 获取购物车中已选中的商品
         List<CartItem> cartItems = cartItemRepository.findByUserIdAndSelected(userId, 1);
         if (cartItems.isEmpty()) {
             return Result.error(400, "购物车中没有选中的商品");
         }
 
-        // 生成订单号
         String orderNo = generateOrderNo();
 
-        // 计算总金额并创建订单明细
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CartItem cartItem : cartItems) {
-            Product product = productRepository.findById(cartItem.getProductId()).orElse(null);
+            Product product = productRepository.findByIdForUpdate(cartItem.getProductId()).orElse(null);
             if (product == null || product.getStatus() != 1) {
                 return Result.error(400, "商品 " + (product != null ? product.getName() : "未知") + " 已下架");
             }
@@ -56,12 +55,10 @@ public class OrderService {
                 return Result.error(400, "商品 " + product.getName() + " 库存不足");
             }
 
-            // 扣减库存，增加销量
             product.setStock(product.getStock() - cartItem.getQuantity());
             product.setSales(product.getSales() + cartItem.getQuantity());
             productRepository.save(product);
 
-            // 创建订单明细
             BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             OrderItem orderItem = new OrderItem();
             orderItem.setProductId(product.getId());
@@ -75,7 +72,6 @@ public class OrderService {
             totalAmount = totalAmount.add(itemTotal);
         }
 
-        // 创建订单
         Order order = new Order();
         order.setOrderNo(orderNo);
         order.setUserId(userId);
@@ -88,13 +84,11 @@ public class OrderService {
 
         orderRepository.save(order);
 
-        // 保存订单明细
         for (OrderItem orderItem : orderItems) {
             orderItem.setOrderId(order.getId());
         }
         orderItemRepository.saveAll(orderItems);
 
-        // 清除购物车中已选中的商品
         for (CartItem cartItem : cartItems) {
             cartItemRepository.delete(cartItem);
         }
@@ -103,17 +97,11 @@ public class OrderService {
         return Result.success(order);
     }
 
-    /**
-     * 获取用户订单列表
-     */
     public Result<Page<Order>> getUserOrders(Long userId, int page, int size) {
         Page<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
         return Result.success(orders);
     }
 
-    /**
-     * 获取订单详情
-     */
     public Result<Order> getOrderDetail(Long userId, String orderNo) {
         Order order = orderRepository.findByOrderNo(orderNo).orElse(null);
         if (order == null) {
@@ -127,10 +115,7 @@ public class OrderService {
         return Result.success(order);
     }
 
-    /**
-     * 取消订单
-     */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<Void> cancelOrder(Long userId, String orderNo) {
         Order order = orderRepository.findByOrderNo(orderNo).orElse(null);
         if (order == null) {
@@ -143,26 +128,13 @@ public class OrderService {
             return Result.error(400, "只能取消待付款订单");
         }
 
-        // 恢复库存
-        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
-        for (OrderItem item : items) {
-            Product product = productRepository.findById(item.getProductId()).orElse(null);
-            if (product != null) {
-                product.setStock(product.getStock() + item.getQuantity());
-                product.setSales(product.getSales() - item.getQuantity());
-                productRepository.save(product);
-            }
-        }
-
         order.setStatus(4);
         orderRepository.save(order);
+        restoreStock(order.getId());
         return Result.success();
     }
 
-    /**
-     * 模拟支付（状态变更为已付款）
-     */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<Void> payOrder(Long userId, String orderNo) {
         Order order = orderRepository.findByOrderNo(orderNo).orElse(null);
         if (order == null) {
@@ -181,9 +153,6 @@ public class OrderService {
         return Result.success();
     }
 
-    /**
-     * 获取所有订单（后台管理）
-     */
     public Result<Page<Order>> getAllOrders(int page, int size, Integer status) {
         Page<Order> orders;
         if (status != null) {
@@ -194,10 +163,7 @@ public class OrderService {
         return Result.success(orders);
     }
 
-    /**
-     * 发货（后台管理）
-     */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<Void> deliverOrder(String orderNo) {
         Order order = orderRepository.findByOrderNo(orderNo).orElse(null);
         if (order == null) {
@@ -213,9 +179,18 @@ public class OrderService {
         return Result.success();
     }
 
-    /**
-     * 生成订单号
-     */
+    public void restoreStock(Long orderId) {
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        for (OrderItem item : items) {
+            Product product = productRepository.findById(item.getProductId()).orElse(null);
+            if (product != null) {
+                product.setStock(product.getStock() + item.getQuantity());
+                product.setSales(Math.max(0, product.getSales() - item.getQuantity()));
+                productRepository.save(product);
+            }
+        }
+    }
+
     private String generateOrderNo() {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String uuid = UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();

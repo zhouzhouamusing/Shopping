@@ -17,7 +17,7 @@
       <el-table-column prop="name" label="商品名称" min-width="200" show-overflow-tooltip />
       <el-table-column prop="price" label="价格" width="100">
         <template #default="{ row }">
-          <span style="color: #ff4d4f; font-weight: 600;">¥{{ row.price }}</span>
+          <span style="color: var(--primary); font-weight: 600;">¥{{ row.price }}</span>
         </template>
       </el-table-column>
       <el-table-column prop="stock" label="库存" width="80" />
