@@ -2,6 +2,7 @@ package com.shopping.controller;
 
 import com.shopping.dto.CouponExchangeRequest;
 import com.shopping.dto.Result;
+import com.shopping.entity.CategoryPointsRule;
 import com.shopping.entity.PointsCoupon;
 import com.shopping.entity.PointsTransaction;
 import com.shopping.entity.UserCoupon;
@@ -55,5 +56,10 @@ public class PointsController {
             @RequestParam(required = false) String status) {
         Long userId = (Long) authentication.getPrincipal();
         return pointsService.getUserCoupons(userId, status);
+    }
+
+    @GetMapping("/rules")
+    public Result<List<CategoryPointsRule>> getActiveRules() {
+        return pointsService.getAllPointsRules();
     }
 }

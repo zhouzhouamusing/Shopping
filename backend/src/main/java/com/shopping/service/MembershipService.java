@@ -55,27 +55,37 @@ public class MembershipService {
         MemberLevel currentLevel = memberLevelRepository.findById(membership.getLevelId()).orElse(null);
         if (currentLevel == null) return;
 
-        MemberLevel nextLevel = null;
-        for (MemberLevel level : levels) {
-            if (level.getLevelCode() == currentLevel.getLevelCode() + 1) {
-                nextLevel = level;
+        MemberLevel originalLevel = currentLevel;
+        MemberLevel upgraded = currentLevel;
+
+        while (true) {
+            MemberLevel nextLevel = null;
+            for (MemberLevel level : levels) {
+                if (level.getLevelCode() == upgraded.getLevelCode() + 1) {
+                    nextLevel = level;
+                    break;
+                }
+            }
+            if (nextLevel == null) break;
+
+            boolean spendingMet = membership.getTotalSpending().compareTo(nextLevel.getMinSpending()) >= 0;
+            boolean pointsMet = membership.getTotalEarnedPoints() >= nextLevel.getMinPoints();
+            if (spendingMet || pointsMet) {
+                upgraded = nextLevel;
+            } else {
                 break;
             }
         }
 
-        if (nextLevel == null) return;
-
-        boolean spendingMet = membership.getTotalSpending().compareTo(nextLevel.getMinSpending()) >= 0;
-        boolean pointsMet = membership.getTotalEarnedPoints() >= nextLevel.getMinPoints();
-        if (spendingMet || pointsMet) {
-            membership.setLevelId(nextLevel.getId());
+        if (!upgraded.getId().equals(originalLevel.getId())) {
+            membership.setLevelId(upgraded.getId());
             membershipRepository.save(membership);
             log.info("会员等级晋升: userId={}, {}({}) -> {}({})",
-                    userId, currentLevel.getName(), currentLevel.getLevelCode(),
-                    nextLevel.getName(), nextLevel.getLevelCode());
+                    userId, originalLevel.getName(), originalLevel.getLevelCode(),
+                    upgraded.getName(), upgraded.getLevelCode());
             eventQueue.publishStatusChangeEvent(
-                    "USER:" + userId, currentLevel.getLevelCode(), 100,
-                    "system", "会员晋升: " + currentLevel.getName() + " → " + nextLevel.getName());
+                    "USER:" + userId, originalLevel.getLevelCode(), 100,
+                    "system", "会员晋升: " + originalLevel.getName() + " → " + upgraded.getName());
         }
     }
 

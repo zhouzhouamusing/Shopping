@@ -302,12 +302,15 @@ public class PointsService {
     // ==================== 管理员接口 ====================
 
     @Transactional(rollbackFor = Exception.class)
-    public Result<Void> adjustPoints(Long userId, int points, String reason) {
+    public Result<Void> adjustPoints(Long userId, int points, String reason, Long operatorId) {
         if (points == 0) {
             return Result.error(400, "调整积分数量不能为0");
         }
         if (reason == null || reason.isBlank()) {
             return Result.error(400, "调整原因不能为空");
+        }
+        if (userId == null) {
+            return Result.error(400, "用户ID不能为空");
         }
 
         UserMembership membership = membershipRepository.findByUserIdForUpdate(userId).orElse(null);
@@ -331,18 +334,24 @@ public class PointsService {
         tx.setType(points > 0 ? "ADMIN_ADD" : "ADMIN_DEDUCT");
         tx.setPoints(points);
         tx.setBalanceAfter(newBalance);
-        tx.setReason("管理员调整: " + reason);
+        tx.setReason("管理员(ID:" + operatorId + ")调整: " + reason);
         if (points > 0) {
             tx.setExpireTime(java.time.LocalDateTime.now().plusDays(pointsExpireDays));
         }
         transactionRepository.save(tx);
 
-        log.info("管理员调整积分: userId={}, points={}, reason={}, balance={}",
-                userId, points, reason, newBalance);
+        log.info("管理员调整积分: operatorId={}, userId={}, points={}, reason={}, balance={}",
+                operatorId, userId, points, reason, newBalance);
         return Result.success();
     }
 
     public Result<List<CategoryPointsRule>> getAllPointsRules() {
+        List<CategoryPointsRule> all = pointsRuleRepository.findAll();
+        List<CategoryPointsRule> active = all.stream().filter(this::isRuleActive).toList();
+        return Result.success(active);
+    }
+
+    public Result<List<CategoryPointsRule>> getAllPointsRulesAdmin() {
         return Result.success(pointsRuleRepository.findAll());
     }
 
@@ -436,22 +445,28 @@ public class PointsService {
             transactionRepository.save(tx);
 
             UserMembership membership = membershipRepository.findByUserIdForUpdate(tx.getUserId()).orElse(null);
-            if (membership != null && membership.getTotalPoints() > 0) {
-                int deduct = Math.min(tx.getPoints(), membership.getTotalPoints());
-                membership.setTotalPoints(membership.getTotalPoints() - deduct);
-                membershipRepository.save(membership);
-
-                PointsTransaction expireTx = new PointsTransaction();
-                expireTx.setUserId(tx.getUserId());
-                expireTx.setType("EXPIRE");
-                expireTx.setPoints(-deduct);
-                expireTx.setBalanceAfter(membership.getTotalPoints());
-                expireTx.setReason("积分过期清零");
-                transactionRepository.save(expireTx);
-
-                log.info("积分过期清理: userId={}, points={}, balance={}",
-                        tx.getUserId(), deduct, membership.getTotalPoints());
+            if (membership == null || membership.getTotalPoints() <= 0) {
+                continue;
             }
+
+            int deduct = Math.min(tx.getPoints(), membership.getTotalPoints());
+            if (deduct <= 0) {
+                continue;
+            }
+
+            membership.setTotalPoints(membership.getTotalPoints() - deduct);
+            membershipRepository.save(membership);
+
+            PointsTransaction expireTx = new PointsTransaction();
+            expireTx.setUserId(tx.getUserId());
+            expireTx.setType("EXPIRE");
+            expireTx.setPoints(-deduct);
+            expireTx.setBalanceAfter(membership.getTotalPoints());
+            expireTx.setReason("积分过期清零(原记录ID:" + tx.getId() + ")");
+            transactionRepository.save(expireTx);
+
+            log.info("积分过期清理: userId={}, earned={}, actualDeduct={}, balance={}",
+                    tx.getUserId(), tx.getPoints(), deduct, membership.getTotalPoints());
         }
 
         if (!expiredList.isEmpty()) {

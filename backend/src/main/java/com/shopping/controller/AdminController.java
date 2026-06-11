@@ -23,6 +23,8 @@ import com.shopping.service.PointsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -183,7 +185,7 @@ public class AdminController {
 
     @GetMapping("/points-rules")
     public Result<java.util.List<CategoryPointsRule>> getPointsRules() {
-        return pointsService.getAllPointsRules();
+        return pointsService.getAllPointsRulesAdmin();
     }
 
     @PostMapping("/points-rules")
@@ -221,8 +223,12 @@ public class AdminController {
 
     // ==================== 积分手动调整 ====================
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/points/adjust")
-    public Result<Void> adjustPoints(@RequestBody PointsAdjustRequest request) {
-        return pointsService.adjustPoints(request.getUserId(), request.getPoints(), request.getReason());
+    public Result<Void> adjustPoints(Authentication authentication,
+                                     @RequestBody PointsAdjustRequest request) {
+        Long operatorId = (Long) authentication.getPrincipal();
+        return pointsService.adjustPoints(request.getUserId(), request.getPoints(),
+                request.getReason(), operatorId);
     }
 }
