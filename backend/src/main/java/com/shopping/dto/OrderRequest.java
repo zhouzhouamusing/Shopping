@@ -17,4 +17,8 @@ public class OrderRequest {
     private String remark;
 
     private List<Long> productIds;
+
+    private Integer usePoints;
+
+    private Long userCouponId;
 }

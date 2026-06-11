@@ -48,6 +48,21 @@ public class Order {
     @Column(name = "payment_no", length = 50)
     private String paymentNo;
 
+    @Column(name = "points_used")
+    private Integer pointsUsed = 0;
+
+    @Column(name = "points_discount", precision = 10, scale = 2)
+    private BigDecimal pointsDiscount = BigDecimal.ZERO;
+
+    @Column(name = "coupon_id")
+    private Long couponId;
+
+    @Column(name = "coupon_discount", precision = 10, scale = 2)
+    private BigDecimal couponDiscount = BigDecimal.ZERO;
+
+    @Column(name = "actual_amount", precision = 10, scale = 2)
+    private BigDecimal actualAmount;
+
     @Column(name = "payment_time")
     private LocalDateTime paymentTime;
 

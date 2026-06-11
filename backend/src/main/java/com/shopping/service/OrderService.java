@@ -41,6 +41,8 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final PriceCircuitBreakerService priceCircuitBreaker;
     private final OrderEventQueueService eventQueue;
+    private final PointsService pointsService;
+    private final MembershipService membershipService;
 
     @Retryable(
         retryFor = {PessimisticLockingFailureException.class},
@@ -128,10 +130,49 @@ public class OrderService {
             return Result.error(400, amountCheck.getMessage());
         }
 
+        // 会员折扣
+        BigDecimal actualAmount = totalAmount;
+        Result<BigDecimal> discountResult = membershipService.getDiscountRate(userId);
+        if (discountResult.getCode() == 200 && discountResult.getData() != null) {
+            BigDecimal discountRate = discountResult.getData();
+            if (discountRate.compareTo(BigDecimal.ONE) < 0) {
+                actualAmount = totalAmount.multiply(discountRate).setScale(2, java.math.RoundingMode.HALF_UP);
+            }
+        }
+
+        // 积分抵扣
+        int pointsUsed = 0;
+        BigDecimal pointsDiscount = BigDecimal.ZERO;
+        if (request.getUsePoints() != null && request.getUsePoints() > 0) {
+            Result<BigDecimal> pointsResult = pointsService.redeemPointsForOrder(userId, request.getUsePoints(), orderNo);
+            if (pointsResult.getCode() == 200 && pointsResult.getData() != null) {
+                pointsDiscount = pointsResult.getData();
+                pointsUsed = request.getUsePoints();
+                actualAmount = actualAmount.subtract(pointsDiscount).max(new BigDecimal("0.01"));
+            }
+        }
+
+        // 优惠券抵扣
+        Long couponId = null;
+        BigDecimal couponDiscount = BigDecimal.ZERO;
+        if (request.getUserCouponId() != null) {
+            Result<BigDecimal> couponResult = pointsService.useCoupon(userId, request.getUserCouponId(), orderNo, actualAmount);
+            if (couponResult.getCode() == 200 && couponResult.getData() != null) {
+                couponDiscount = couponResult.getData();
+                couponId = request.getUserCouponId();
+                actualAmount = actualAmount.subtract(couponDiscount).max(new BigDecimal("0.01"));
+            }
+        }
+
         Order order = new Order();
         order.setOrderNo(orderNo);
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
+        order.setActualAmount(actualAmount);
+        order.setPointsUsed(pointsUsed);
+        order.setPointsDiscount(pointsDiscount);
+        order.setCouponId(couponId);
+        order.setCouponDiscount(couponDiscount);
         order.setStatus(0);
         order.setReceiverName(request.getReceiverName());
         order.setReceiverPhone(request.getReceiverPhone());
@@ -268,6 +309,7 @@ public class OrderService {
         orderRepository.save(order);
         restoreStock(order.getId());
         eventQueue.publishStatusChangeEvent(orderNo, fromStatus, 6, "user:" + userId, "用户申请退款");
+        pointsService.deductPointsForRefund(orderNo);
         return Result.success();
     }
 
@@ -313,6 +355,7 @@ public class OrderService {
         orderRepository.save(order);
         restoreStock(order.getId());
         eventQueue.publishStatusChangeEvent(orderNo, fromStatus, 6, "admin", "管理员退款");
+        pointsService.deductPointsForRefund(orderNo);
         log.info("管理员退款: orderNo={}", orderNo);
         return Result.success();
     }

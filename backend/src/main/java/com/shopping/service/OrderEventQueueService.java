@@ -195,6 +195,8 @@ public class OrderEventQueueService {
             case 2 -> log.info("[消息通知] 通知用户已发货: orderNo={}", event.getOrderNo());
             case 6 -> log.info("[消息通知] 通知用户退款成功: orderNo={}", event.getOrderNo());
             case 7 -> log.info("[消息通知] 通知用户订单已过期: orderNo={}", event.getOrderNo());
+            case 100 -> log.info("[消息通知] 通知用户会员等级晋升: orderNo={}, reason={}",
+                    event.getOrderNo(), event.getReason());
         }
     }
 

@@ -18,6 +18,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final MembershipService membershipService;
 
     /**
      * 用户注册
@@ -43,6 +44,8 @@ public class UserService {
         user.setStatus(1);
 
         userRepository.save(user);
+
+        membershipService.initMembership(user.getId());
 
         // 生成Token并返回
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
