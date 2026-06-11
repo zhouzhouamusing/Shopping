@@ -31,6 +31,12 @@ public class PointsTransaction {
     @Column(nullable = false, length = 200)
     private String reason;
 
+    @Column(name = "expire_time")
+    private LocalDateTime expireTime;
+
+    @Column(name = "expired", nullable = false)
+    private Boolean expired = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

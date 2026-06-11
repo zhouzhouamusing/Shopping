@@ -49,3 +49,11 @@ cors:
 # 支付配置
 payment:
   timeout-minutes: 30
+
+# 订单配置
+order:
+  min-amount: 0.01
+
+# 积分配置
+points:
+  expire-days: 365

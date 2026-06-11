@@ -4,6 +4,7 @@ import com.shopping.dto.ProductRequest;
 import com.shopping.dto.ReviewReplyRequest;
 import com.shopping.dto.CategoryPointsRuleRequest;
 import com.shopping.dto.MemberLevelRequest;
+import com.shopping.dto.PointsAdjustRequest;
 import com.shopping.dto.PointsCouponRequest;
 import com.shopping.dto.Result;
 import com.shopping.entity.Order;
@@ -216,5 +217,12 @@ public class AdminController {
     @DeleteMapping("/points-coupons/{id}")
     public Result<Void> deletePointsCoupon(@PathVariable Long id) {
         return pointsService.deleteCoupon(id);
+    }
+
+    // ==================== 积分手动调整 ====================
+
+    @PostMapping("/points/adjust")
+    public Result<Void> adjustPoints(@RequestBody PointsAdjustRequest request) {
+        return pointsService.adjustPoints(request.getUserId(), request.getPoints(), request.getReason());
     }
 }

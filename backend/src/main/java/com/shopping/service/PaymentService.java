@@ -37,7 +37,6 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
-    private final PointsService pointsService;
 
     @Value("${payment.timeout-minutes:30}")
     private int timeoutMinutes;
@@ -96,7 +95,6 @@ public class PaymentService {
             orderRepository.save(order);
 
             log.info("货到付款订单直接完成: orderNo={}, paymentNo={}", order.getOrderNo(), paymentNo);
-            pointsService.awardPointsForOrder(order.getOrderNo());
             return Result.success(buildResponse(payment));
         }
 
@@ -216,8 +214,6 @@ public class PaymentService {
             log.info("支付成功回调处理完成: paymentNo={}, orderNo={}, tradeNo={}",
                     paymentNo, payment.getOrderNo(), tradeNo);
             channelProcessingMap.remove(paymentNo);
-
-            pointsService.awardPointsForOrder(payment.getOrderNo());
         } else {
             payment.setPaymentStatus("FAILED");
             paymentRepository.save(payment);

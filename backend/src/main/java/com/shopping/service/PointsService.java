@@ -7,6 +7,7 @@ import com.shopping.entity.*;
 import com.shopping.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -35,6 +36,9 @@ public class PointsService {
 
     private static final BigDecimal DEFAULT_POINTS_RATE = new BigDecimal("0.0100");
     private static final BigDecimal POINTS_TO_YUAN = new BigDecimal("0.01");
+
+    @Value("${points.expire-days:365}")
+    private int pointsExpireDays;
 
     @Transactional(rollbackFor = Exception.class)
     public void awardPointsForOrder(String orderNo) {
@@ -66,7 +70,7 @@ public class PointsService {
             BigDecimal rate = DEFAULT_POINTS_RATE;
             if (product != null && product.getCategoryId() != null) {
                 CategoryPointsRule rule = pointsRuleRepository.findByCategoryId(product.getCategoryId()).orElse(null);
-                if (rule != null) {
+                if (rule != null && isRuleActive(rule)) {
                     rate = rule.getPointsRate();
                 }
             }
@@ -92,7 +96,8 @@ public class PointsService {
         transaction.setPoints(finalPoints);
         transaction.setBalanceAfter(membership.getTotalPoints());
         transaction.setOrderNo(orderNo);
-        transaction.setReason("订单支付奖励");
+        transaction.setReason("订单完成奖励");
+        transaction.setExpireTime(java.time.LocalDateTime.now().plusDays(pointsExpireDays));
         transactionRepository.save(transaction);
 
         log.info("积分发放成功: userId={}, orderNo={}, points={}, balance={}",
@@ -183,12 +188,16 @@ public class PointsService {
 
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> exchangeCoupon(Long userId, Long couponId) {
-        PointsCoupon coupon = couponRepository.findById(couponId).orElse(null);
+        PointsCoupon coupon = couponRepository.findByIdForUpdate(couponId).orElse(null);
         if (coupon == null || coupon.getStatus() != 1) {
             return Result.error(400, "优惠券不存在或已停用");
         }
         if (coupon.getRemainingStock() != -1 && coupon.getRemainingStock() <= 0) {
             return Result.error(400, "优惠券已兑完");
+        }
+        if (coupon.getTotalStock() != -1 && coupon.getRemainingStock() != -1
+                && coupon.getRemainingStock() > coupon.getTotalStock()) {
+            return Result.error(400, "优惠券库存数据异常");
         }
 
         UserMembership membership = membershipRepository.findByUserIdForUpdate(userId).orElse(null);
@@ -292,6 +301,47 @@ public class PointsService {
 
     // ==================== 管理员接口 ====================
 
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> adjustPoints(Long userId, int points, String reason) {
+        if (points == 0) {
+            return Result.error(400, "调整积分数量不能为0");
+        }
+        if (reason == null || reason.isBlank()) {
+            return Result.error(400, "调整原因不能为空");
+        }
+
+        UserMembership membership = membershipRepository.findByUserIdForUpdate(userId).orElse(null);
+        if (membership == null) {
+            return Result.error(400, "用户会员信息不存在");
+        }
+
+        int newBalance = membership.getTotalPoints() + points;
+        if (newBalance < 0) {
+            return Result.error(400, "扣减后积分余额不能为负数");
+        }
+
+        membership.setTotalPoints(newBalance);
+        if (points > 0) {
+            membership.setTotalEarnedPoints(membership.getTotalEarnedPoints() + points);
+        }
+        membershipRepository.save(membership);
+
+        PointsTransaction tx = new PointsTransaction();
+        tx.setUserId(userId);
+        tx.setType(points > 0 ? "ADMIN_ADD" : "ADMIN_DEDUCT");
+        tx.setPoints(points);
+        tx.setBalanceAfter(newBalance);
+        tx.setReason("管理员调整: " + reason);
+        if (points > 0) {
+            tx.setExpireTime(java.time.LocalDateTime.now().plusDays(pointsExpireDays));
+        }
+        transactionRepository.save(tx);
+
+        log.info("管理员调整积分: userId={}, points={}, reason={}, balance={}",
+                userId, points, reason, newBalance);
+        return Result.success();
+    }
+
     public Result<List<CategoryPointsRule>> getAllPointsRules() {
         return Result.success(pointsRuleRepository.findAll());
     }
@@ -304,6 +354,8 @@ public class PointsService {
             rule.setCategoryId(request.getCategoryId());
         }
         rule.setPointsRate(request.getPointsRate());
+        rule.setStartTime(request.getStartTime());
+        rule.setEndTime(request.getEndTime());
         pointsRuleRepository.save(rule);
         return Result.success(rule);
     }
@@ -370,5 +422,51 @@ public class PointsService {
         if (!expired.isEmpty()) {
             log.info("已清理过期优惠券: {}张", expired.size());
         }
+    }
+
+    @Scheduled(fixedRate = 86400000)
+    @Transactional(rollbackFor = Exception.class)
+    public void cleanExpiredPoints() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        List<PointsTransaction> expiredList = transactionRepository
+                .findByTypeAndExpiredFalseAndExpireTimeBefore("EARN", now);
+
+        for (PointsTransaction tx : expiredList) {
+            tx.setExpired(true);
+            transactionRepository.save(tx);
+
+            UserMembership membership = membershipRepository.findByUserIdForUpdate(tx.getUserId()).orElse(null);
+            if (membership != null && membership.getTotalPoints() > 0) {
+                int deduct = Math.min(tx.getPoints(), membership.getTotalPoints());
+                membership.setTotalPoints(membership.getTotalPoints() - deduct);
+                membershipRepository.save(membership);
+
+                PointsTransaction expireTx = new PointsTransaction();
+                expireTx.setUserId(tx.getUserId());
+                expireTx.setType("EXPIRE");
+                expireTx.setPoints(-deduct);
+                expireTx.setBalanceAfter(membership.getTotalPoints());
+                expireTx.setReason("积分过期清零");
+                transactionRepository.save(expireTx);
+
+                log.info("积分过期清理: userId={}, points={}, balance={}",
+                        tx.getUserId(), deduct, membership.getTotalPoints());
+            }
+        }
+
+        if (!expiredList.isEmpty()) {
+            log.info("已清理过期积分记录: {}条", expiredList.size());
+        }
+    }
+
+    private boolean isRuleActive(CategoryPointsRule rule) {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        if (rule.getStartTime() != null && now.isBefore(rule.getStartTime())) {
+            return false;
+        }
+        if (rule.getEndTime() != null && now.isAfter(rule.getEndTime())) {
+            return false;
+        }
+        return true;
     }
 }

@@ -6,6 +6,7 @@ import com.shopping.entity.*;
 import com.shopping.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -43,6 +44,9 @@ public class OrderService {
     private final OrderEventQueueService eventQueue;
     private final PointsService pointsService;
     private final MembershipService membershipService;
+
+    @Value("${order.min-amount:0.01}")
+    private BigDecimal orderMinAmount;
 
     @Retryable(
         retryFor = {PessimisticLockingFailureException.class},
@@ -148,7 +152,7 @@ public class OrderService {
             if (pointsResult.getCode() == 200 && pointsResult.getData() != null) {
                 pointsDiscount = pointsResult.getData();
                 pointsUsed = request.getUsePoints();
-                actualAmount = actualAmount.subtract(pointsDiscount).max(new BigDecimal("0.01"));
+                actualAmount = actualAmount.subtract(pointsDiscount).max(orderMinAmount);
             }
         }
 
@@ -160,7 +164,7 @@ public class OrderService {
             if (couponResult.getCode() == 200 && couponResult.getData() != null) {
                 couponDiscount = couponResult.getData();
                 couponId = request.getUserCouponId();
-                actualAmount = actualAmount.subtract(couponDiscount).max(new BigDecimal("0.01"));
+                actualAmount = actualAmount.subtract(couponDiscount).max(orderMinAmount);
             }
         }
 
@@ -288,6 +292,7 @@ public class OrderService {
         order.setStatus(4);
         orderRepository.save(order);
         eventQueue.publishStatusChangeEvent(orderNo, 3, 4, "user:" + userId, "完成评价");
+        pointsService.awardPointsForOrder(orderNo);
         return Result.success();
     }
 

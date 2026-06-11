@@ -55,26 +55,27 @@ public class MembershipService {
         MemberLevel currentLevel = memberLevelRepository.findById(membership.getLevelId()).orElse(null);
         if (currentLevel == null) return;
 
-        MemberLevel newLevel = currentLevel;
+        MemberLevel nextLevel = null;
         for (MemberLevel level : levels) {
-            if (level.getLevelCode() > currentLevel.getLevelCode()) {
-                boolean spendingMet = membership.getTotalSpending().compareTo(level.getMinSpending()) >= 0;
-                boolean pointsMet = membership.getTotalEarnedPoints() >= level.getMinPoints();
-                if (spendingMet || pointsMet) {
-                    newLevel = level;
-                }
+            if (level.getLevelCode() == currentLevel.getLevelCode() + 1) {
+                nextLevel = level;
+                break;
             }
         }
 
-        if (!newLevel.getId().equals(currentLevel.getId())) {
-            membership.setLevelId(newLevel.getId());
+        if (nextLevel == null) return;
+
+        boolean spendingMet = membership.getTotalSpending().compareTo(nextLevel.getMinSpending()) >= 0;
+        boolean pointsMet = membership.getTotalEarnedPoints() >= nextLevel.getMinPoints();
+        if (spendingMet || pointsMet) {
+            membership.setLevelId(nextLevel.getId());
             membershipRepository.save(membership);
             log.info("会员等级晋升: userId={}, {}({}) -> {}({})",
                     userId, currentLevel.getName(), currentLevel.getLevelCode(),
-                    newLevel.getName(), newLevel.getLevelCode());
+                    nextLevel.getName(), nextLevel.getLevelCode());
             eventQueue.publishStatusChangeEvent(
                     "USER:" + userId, currentLevel.getLevelCode(), 100,
-                    "system", "会员晋升: " + currentLevel.getName() + " → " + newLevel.getName());
+                    "system", "会员晋升: " + currentLevel.getName() + " → " + nextLevel.getName());
         }
     }
 
