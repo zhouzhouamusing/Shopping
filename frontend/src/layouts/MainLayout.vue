@@ -55,6 +55,11 @@
             <span class="action-text">订单</span>
           </router-link>
 
+          <router-link to="/favorites" class="action-item" v-if="userStore.isLoggedIn">
+            <el-icon :size="22"><Star /></el-icon>
+            <span class="action-text">收藏</span>
+          </router-link>
+
           <template v-if="userStore.isLoggedIn">
             <el-dropdown trigger="click" @command="handleCommand">
               <div class="user-info">
@@ -73,6 +78,12 @@
                   </el-dropdown-item>
                   <el-dropdown-item command="addresses">
                     <el-icon><Location /></el-icon>收货地址
+                  </el-dropdown-item>
+                  <el-dropdown-item command="favorites">
+                    <el-icon><Star /></el-icon>我的收藏
+                  </el-dropdown-item>
+                  <el-dropdown-item command="history">
+                    <el-icon><Clock /></el-icon>浏览历史
                   </el-dropdown-item>
                   <el-dropdown-item divided command="logout">
                     <el-icon><SwitchButton /></el-icon>退出登录
@@ -162,6 +173,12 @@ const handleCommand = (command) => {
       break
     case 'addresses':
       router.push('/addresses')
+      break
+    case 'favorites':
+      router.push('/favorites')
+      break
+    case 'history':
+      router.push('/history')
       break
     case 'logout':
       userStore.logout()

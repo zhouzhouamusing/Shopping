@@ -87,6 +87,34 @@
             </el-button>
           </div>
 
+          <!-- 收藏与对比 -->
+          <div class="extra-actions">
+            <el-button
+              :type="isFavorited ? 'warning' : ''"
+              plain
+              @click="toggleFavorite"
+            >
+              <el-icon><StarFilled v-if="isFavorited" /><Star v-else /></el-icon>
+              {{ isFavorited ? '已收藏' : '收藏' }}
+            </el-button>
+            <el-button
+              :type="isInCompare ? 'success' : ''"
+              plain
+              @click="toggleCompare"
+            >
+              <el-icon><DataAnalysis /></el-icon>
+              {{ isInCompare ? '已加入对比' : '加入对比' }}
+            </el-button>
+            <el-button
+              v-if="comparisonStore.count >= 2"
+              type="primary"
+              plain
+              @click="$router.push('/comparison')"
+            >
+              去对比 ({{ comparisonStore.count }})
+            </el-button>
+          </div>
+
           <!-- 保障 -->
           <div class="guarantees">
             <div class="guarantee-item">
@@ -195,10 +223,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
+import { useComparisonStore } from '@/stores/comparison'
 import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
 
@@ -206,10 +235,16 @@ const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const userStore = useUserStore()
+const comparisonStore = useComparisonStore()
 
 const product = ref(null)
 const loading = ref(true)
 const quantity = ref(1)
+const isFavorited = ref(false)
+
+const isInCompare = computed(() =>
+  product.value ? comparisonStore.isInCompare(product.value.id) : false
+)
 
 // 评价相关
 const reviews = ref([])
@@ -279,9 +314,58 @@ const buyNow = async () => {
   router.push('/cart')
 }
 
+const toggleFavorite = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  try {
+    const res = await api.post('/favorites/toggle', null, { params: { productId: route.params.id } })
+    if (res.code === 200) {
+      isFavorited.value = res.data.favorited
+      ElMessage.success(isFavorited.value ? '已收藏' : '已取消收藏')
+    }
+  } catch (e) {
+    // handled by interceptor
+  }
+}
+
+const toggleCompare = () => {
+  if (!product.value) return
+  if (comparisonStore.isInCompare(product.value.id)) {
+    comparisonStore.removeFromCompare(product.value.id)
+  } else {
+    comparisonStore.addToCompare(product.value.id)
+  }
+}
+
+const checkFavoriteStatus = async () => {
+  if (!userStore.isLoggedIn) return
+  try {
+    const res = await api.get('/favorites/check', { params: { productId: route.params.id } })
+    if (res.code === 200) {
+      isFavorited.value = res.data.favorited
+    }
+  } catch (e) {
+    // silently fail
+  }
+}
+
+const recordBrowsingHistory = async () => {
+  if (!userStore.isLoggedIn) return
+  try {
+    await api.post('/history', null, { params: { productId: route.params.id } })
+  } catch (e) {
+    // fire-and-forget
+  }
+}
+
 onMounted(() => {
   fetchProduct()
   fetchReviews()
+  checkFavoriteStatus()
+  recordBrowsingHistory()
 })
 </script>
 
@@ -506,6 +590,12 @@ onMounted(() => {
       color: #52c41a;
     }
   }
+}
+
+.extra-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .product-description {

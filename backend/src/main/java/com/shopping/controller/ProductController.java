@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
@@ -49,5 +51,10 @@ public class ProductController {
                                                    @RequestParam(defaultValue = "10") int size,
                                                    @RequestParam(defaultValue = "newest") String sort) {
         return reviewService.getProductReviews(id, rating, page, size, sort);
+    }
+
+    @GetMapping("/batch")
+    public Result<List<Product>> getProductsByIds(@RequestParam List<Long> ids) {
+        return productService.getProductsByIds(ids);
     }
 }

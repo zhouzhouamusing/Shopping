@@ -11,6 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * 商品服务 - 处理商品查询和管理
  */
@@ -143,5 +145,16 @@ public class ProductService {
     public Result<Page<Product>> getAllProducts(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return Result.success(productRepository.findAll(pageable));
+    }
+
+    /**
+     * 批量获取商品（商品对比用）
+     */
+    public Result<List<Product>> getProductsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty() || ids.size() > 4) {
+            return Result.error(400, "请选择1-4个商品进行对比");
+        }
+        List<Product> products = productRepository.findAllById(ids);
+        return Result.success(products);
     }
 }

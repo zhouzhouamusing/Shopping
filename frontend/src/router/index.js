@@ -20,6 +20,9 @@ const routes = [
       { path: '/payment/:orderNo', name: 'Payment', component: () => import('@/views/Payment.vue') },
       { path: '/payment-result/:paymentNo', name: 'PaymentResult', component: () => import('@/views/PaymentResult.vue') },
       { path: '/addresses', name: 'Addresses', component: () => import('@/views/Addresses.vue') },
+      { path: '/favorites', name: 'Favorites', component: () => import('@/views/Favorites.vue') },
+      { path: '/history', name: 'History', component: () => import('@/views/History.vue') },
+      { path: '/comparison', name: 'Comparison', component: () => import('@/views/Comparison.vue') },
     ]
   },
   {
