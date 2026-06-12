@@ -19,8 +19,7 @@ public class BrowsingHistoryController {
     public Result<Void> recordHistory(Authentication authentication,
                                       @RequestParam Long productId) {
         Long userId = (Long) authentication.getPrincipal();
-        browsingHistoryService.recordHistory(userId, productId);
-        return Result.success();
+        return browsingHistoryService.recordHistory(userId, productId);
     }
 
     @GetMapping

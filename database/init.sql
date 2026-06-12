@@ -250,3 +250,16 @@ CREATE TABLE IF NOT EXISTS `browsing_histories` (
     UNIQUE KEY `uk_user_product` (`user_id`, `product_id`),
     KEY `idx_user_browsed` (`user_id`, `browsed_at` DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='浏览历史表';
+
+-- ========================================
+-- 12. 商品对比表
+-- ========================================
+CREATE TABLE IF NOT EXISTS `compare_items` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '记录ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `product_id` BIGINT NOT NULL COMMENT '商品ID',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_product` (`user_id`, `product_id`),
+    KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品对比表';

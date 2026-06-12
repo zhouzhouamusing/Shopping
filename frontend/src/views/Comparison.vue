@@ -94,9 +94,14 @@
             <tr>
               <td class="attr-label">操作</td>
               <td v-for="product in products" :key="product.id">
-                <el-button type="primary" size="small" @click="goDetail(product.id)">
-                  查看详情
-                </el-button>
+                <div class="action-cell">
+                  <el-button type="primary" size="small" @click="handleAddToCart(product)">
+                    <el-icon><ShoppingCart /></el-icon> 加入购物车
+                  </el-button>
+                  <el-button size="small" @click="goDetail(product.id)">
+                    查看详情
+                  </el-button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -118,18 +123,19 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useComparisonStore } from '@/stores/comparison'
+import { useCartStore } from '@/stores/cart'
+import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const comparisonStore = useComparisonStore()
+const cartStore = useCartStore()
+const userStore = useUserStore()
 
 const products = ref([])
 const loading = ref(false)
 
 const fetchProducts = async () => {
-  if (comparisonStore.compareIds.length === 0) {
-    products.value = []
-    return
-  }
   loading.value = true
   try {
     const data = await comparisonStore.fetchCompareProducts()
@@ -139,18 +145,36 @@ const fetchProducts = async () => {
   }
 }
 
-const removeProduct = (productId) => {
-  comparisonStore.removeFromCompare(productId)
+const removeProduct = async (productId) => {
+  await comparisonStore.removeFromCompare(productId)
   products.value = products.value.filter(p => p.id !== productId)
 }
 
-const handleClearAll = () => {
-  comparisonStore.clearAll()
+const handleClearAll = async () => {
+  await comparisonStore.clearAll()
   products.value = []
 }
 
 const goDetail = (id) => {
   router.push({ name: 'ProductDetail', params: { id } })
+}
+
+const handleAddToCart = async (product) => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  if (product.stock === 0) {
+    ElMessage.warning('该商品暂时缺货')
+    return
+  }
+  const res = await cartStore.addToCart(product.id, 1)
+  if (res.code === 200) {
+    ElMessage.success('已加入购物车')
+  } else {
+    ElMessage.error(res.message)
+  }
 }
 
 const isBestPrice = (product) => {
@@ -304,6 +328,13 @@ onMounted(() => {
   color: var(--text-secondary);
   max-width: 200px;
   line-height: 1.5;
+}
+
+.action-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
 }
 
 .empty-state {

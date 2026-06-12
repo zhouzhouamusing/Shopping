@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -50,5 +51,18 @@ public class FavoriteController {
     public Result<Long> getFavoriteCount(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
         return favoriteService.getFavoriteCount(userId);
+    }
+
+    @GetMapping("/ids")
+    public Result<List<Long>> getFavoriteIds(Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        return favoriteService.getFavoriteProductIds(userId);
+    }
+
+    @DeleteMapping("/batch")
+    public Result<Void> batchRemoveFavorites(Authentication authentication,
+                                             @RequestBody List<Long> productIds) {
+        Long userId = (Long) authentication.getPrincipal();
+        return favoriteService.batchRemoveFavorites(userId, productIds);
     }
 }

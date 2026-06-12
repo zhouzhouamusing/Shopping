@@ -44,6 +44,12 @@
             <div class="discount-tag" v-if="product.originalPrice && product.originalPrice > product.price">
               {{ Math.round((1 - product.price / product.originalPrice) * 100) }}%OFF
             </div>
+            <div class="fav-icon" @click.stop="handleToggleFavorite(product.id)">
+              <el-icon :size="18" :class="{ 'is-favorited': favoriteStore.isFavorited(product.id) }">
+                <StarFilled v-if="favoriteStore.isFavorited(product.id)" />
+                <Star v-else />
+              </el-icon>
+            </div>
           </div>
           <div class="product-info">
             <h3 class="product-name">{{ product.name }}</h3>
@@ -82,10 +88,15 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useFavoriteStore } from '@/stores/favorite'
+import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
 
 const route = useRoute()
 const router = useRouter()
+const favoriteStore = useFavoriteStore()
+const userStore = useUserStore()
 
 const products = ref([])
 const loading = ref(false)
@@ -131,6 +142,18 @@ const changeSort = (sort) => {
 
 const goDetail = (id) => {
   router.push({ name: 'ProductDetail', params: { id } })
+}
+
+const handleToggleFavorite = async (productId) => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  const result = await favoriteStore.toggleFavorite(productId)
+  if (result !== null) {
+    ElMessage.success(result ? '已收藏' : '已取消收藏')
+  }
 }
 
 watch(() => route.query, () => {
@@ -261,6 +284,35 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
+}
+
+.fav-icon {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  opacity: 0;
+  z-index: 5;
+
+  &:hover {
+    transform: scale(1.15);
+  }
+
+  .is-favorited {
+    color: #f56c6c;
+  }
+}
+
+.product-card:hover .fav-icon {
+  opacity: 1;
 }
 
 .product-info {

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -61,5 +62,20 @@ public class FavoriteService {
 
     public Result<Long> getFavoriteCount(Long userId) {
         return Result.success(favoriteRepository.countByUserId(userId));
+    }
+
+    public Result<List<Long>> getFavoriteProductIds(Long userId) {
+        List<Favorite> favorites = favoriteRepository.findByUserId(userId);
+        List<Long> ids = favorites.stream().map(Favorite::getProductId).toList();
+        return Result.success(ids);
+    }
+
+    @Transactional
+    public Result<Void> batchRemoveFavorites(Long userId, List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return Result.error(400, "请选择要取消收藏的商品");
+        }
+        favoriteRepository.deleteByUserIdAndProductIdIn(userId, productIds);
+        return Result.success();
     }
 }

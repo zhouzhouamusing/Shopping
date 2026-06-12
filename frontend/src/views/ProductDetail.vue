@@ -228,6 +228,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
 import { useComparisonStore } from '@/stores/comparison'
+import { useFavoriteStore } from '@/stores/favorite'
 import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
 
@@ -236,11 +237,15 @@ const router = useRouter()
 const cartStore = useCartStore()
 const userStore = useUserStore()
 const comparisonStore = useComparisonStore()
+const favoriteStore = useFavoriteStore()
 
 const product = ref(null)
 const loading = ref(true)
 const quantity = ref(1)
-const isFavorited = ref(false)
+
+const isFavorited = computed(() =>
+  product.value ? favoriteStore.isFavorited(product.value.id) : false
+)
 
 const isInCompare = computed(() =>
   product.value ? comparisonStore.isInCompare(product.value.id) : false
@@ -320,44 +325,42 @@ const toggleFavorite = async () => {
     router.push('/login')
     return
   }
-  try {
-    const res = await api.post('/favorites/toggle', null, { params: { productId: route.params.id } })
-    if (res.code === 200) {
-      isFavorited.value = res.data.favorited
-      ElMessage.success(isFavorited.value ? '已收藏' : '已取消收藏')
-    }
-  } catch (e) {
-    // handled by interceptor
+  const result = await favoriteStore.toggleFavorite(Number(route.params.id))
+  if (result !== null) {
+    ElMessage.success(result ? '已收藏' : '已取消收藏')
   }
 }
 
-const toggleCompare = () => {
+const toggleCompare = async () => {
   if (!product.value) return
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
   if (comparisonStore.isInCompare(product.value.id)) {
-    comparisonStore.removeFromCompare(product.value.id)
+    await comparisonStore.removeFromCompare(product.value.id)
   } else {
-    comparisonStore.addToCompare(product.value.id)
+    await comparisonStore.addToCompare(product.value.id)
   }
 }
 
 const checkFavoriteStatus = async () => {
   if (!userStore.isLoggedIn) return
-  try {
-    const res = await api.get('/favorites/check', { params: { productId: route.params.id } })
-    if (res.code === 200) {
-      isFavorited.value = res.data.favorited
-    }
-  } catch (e) {
-    // silently fail
+  if (!favoriteStore.loaded) {
+    await favoriteStore.loadFavoriteIds()
   }
 }
 
 const recordBrowsingHistory = async () => {
   if (!userStore.isLoggedIn) return
   try {
-    await api.post('/history', null, { params: { productId: route.params.id } })
+    const res = await api.post('/history', null, { params: { productId: route.params.id } })
+    if (res.code !== 200) {
+      ElMessage.warning('浏览记录保存失败：' + res.message)
+    }
   } catch (e) {
-    // fire-and-forget
+    ElMessage.warning('浏览记录保存失败，请检查网络连接')
   }
 }
 
@@ -366,6 +369,9 @@ onMounted(() => {
   fetchReviews()
   checkFavoriteStatus()
   recordBrowsingHistory()
+  if (userStore.isLoggedIn) {
+    comparisonStore.fetchCompareList()
+  }
 })
 </script>
 

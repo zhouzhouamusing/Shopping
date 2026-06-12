@@ -149,10 +149,14 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
+import { useFavoriteStore } from '@/stores/favorite'
+import { useComparisonStore } from '@/stores/comparison'
 
 const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
+const favoriteStore = useFavoriteStore()
+const comparisonStore = useComparisonStore()
 
 const searchKeyword = ref('')
 const isScrolled = ref(false)
@@ -195,6 +199,8 @@ onMounted(() => {
   window.addEventListener('scroll', handleScroll)
   if (userStore.isLoggedIn) {
     cartStore.fetchCart()
+    favoriteStore.loadFavoriteIds()
+    comparisonStore.fetchCompareList()
   }
 })
 

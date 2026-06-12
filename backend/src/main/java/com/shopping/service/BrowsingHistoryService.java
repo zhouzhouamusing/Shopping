@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,10 +20,12 @@ public class BrowsingHistoryService {
     private final BrowsingHistoryRepository browsingHistoryRepository;
     private final ProductRepository productRepository;
 
+    private static final int MAX_HISTORY_COUNT = 50;
+
     @Transactional
-    public void recordHistory(Long userId, Long productId) {
+    public Result<Void> recordHistory(Long userId, Long productId) {
         if (!productRepository.existsById(productId)) {
-            return;
+            return Result.error(404, "商品不存在");
         }
 
         var existing = browsingHistoryRepository.findByUserIdAndProductId(userId, productId);
@@ -36,7 +39,17 @@ public class BrowsingHistoryService {
             history.setProductId(productId);
             history.setBrowsedAt(LocalDateTime.now());
             browsingHistoryRepository.save(history);
+
+            // 超过上限则删除最早记录
+            long count = browsingHistoryRepository.countByUserId(userId);
+            if (count > MAX_HISTORY_COUNT) {
+                List<BrowsingHistory> all = browsingHistoryRepository.findByUserIdOrderByBrowsedAtAsc(userId);
+                int toDelete = (int) (count - MAX_HISTORY_COUNT);
+                List<BrowsingHistory> oldest = all.subList(0, toDelete);
+                browsingHistoryRepository.deleteAll(oldest);
+            }
         }
+        return Result.success();
     }
 
     public Result<Page<BrowsingHistory>> getHistory(Long userId, int page, int size) {

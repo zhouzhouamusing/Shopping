@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
@@ -17,5 +18,9 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
 
     void deleteByUserIdAndProductId(Long userId, Long productId);
 
+    void deleteByUserIdAndProductIdIn(Long userId, List<Long> productIds);
+
     long countByUserId(Long userId);
+
+    List<Favorite> findByUserId(Long userId);
 }

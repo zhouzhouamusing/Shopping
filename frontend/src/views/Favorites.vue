@@ -2,11 +2,30 @@
   <div class="favorites-page">
     <div class="page-inner">
       <div class="page-header">
-        <el-button class="back-btn" text @click="$router.back()">
-          <el-icon><ArrowLeft /></el-icon> 返回
-        </el-button>
-        <h2 class="page-title">我的收藏</h2>
-        <span class="count-badge" v-if="total > 0">{{ total }} 件</span>
+        <div class="header-left">
+          <el-button class="back-btn" text @click="$router.back()">
+            <el-icon><ArrowLeft /></el-icon> 返回
+          </el-button>
+          <h2 class="page-title">我的收藏</h2>
+          <span class="count-badge" v-if="total > 0">{{ total }} 件</span>
+        </div>
+        <div class="header-right" v-if="favorites.length > 0">
+          <el-checkbox
+            v-model="selectAll"
+            @change="handleSelectAll"
+          >
+            全选
+          </el-checkbox>
+          <el-button
+            type="danger"
+            plain
+            size="small"
+            :disabled="selectedIds.length === 0"
+            @click="batchRemove"
+          >
+            批量取消收藏 ({{ selectedIds.length }})
+          </el-button>
+        </div>
       </div>
 
       <div class="product-grid" v-loading="loading">
@@ -15,7 +34,14 @@
           :key="item.id"
           class="product-card animate-fadeInUp"
           :style="{ animationDelay: `${index * 0.05}s` }"
+          :class="{ 'card-selected': selectedIds.includes(item.productId) }"
         >
+          <div class="card-checkbox">
+            <el-checkbox
+              :model-value="selectedIds.includes(item.productId)"
+              @change="(val) => toggleSelect(item.productId, val)"
+            />
+          </div>
           <div class="product-img-wrapper" @click="goDetail(item.product?.id)">
             <img :src="item.product?.mainImage" :alt="item.product?.name" loading="lazy" />
           </div>
@@ -59,18 +85,42 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useFavoriteStore } from '@/stores/favorite'
 import api from '@/utils/api'
 
 const router = useRouter()
+const favoriteStore = useFavoriteStore()
 
 const favorites = ref([])
 const loading = ref(false)
 const page = ref(1)
 const pageSize = 12
 const total = ref(0)
+const selectedIds = ref([])
+
+const selectAll = computed({
+  get: () => favorites.value.length > 0 && selectedIds.value.length === favorites.value.length,
+  set: () => {}
+})
+
+const handleSelectAll = (val) => {
+  if (val) {
+    selectedIds.value = favorites.value.map(item => item.productId)
+  } else {
+    selectedIds.value = []
+  }
+}
+
+const toggleSelect = (productId, val) => {
+  if (val) {
+    selectedIds.value.push(productId)
+  } else {
+    selectedIds.value = selectedIds.value.filter(id => id !== productId)
+  }
+}
 
 const fetchFavorites = async () => {
   loading.value = true
@@ -79,6 +129,7 @@ const fetchFavorites = async () => {
     if (res.code === 200) {
       favorites.value = res.data.content
       total.value = res.data.totalElements
+      selectedIds.value = []
     }
   } finally {
     loading.value = false
@@ -90,10 +141,31 @@ const removeFavorite = async (productId) => {
     const res = await api.delete(`/favorites/${productId}`)
     if (res.code === 200) {
       ElMessage.success('已取消收藏')
+      favoriteStore.removeFavoriteId(productId)
       fetchFavorites()
     }
   } catch (e) {
     // handled by interceptor
+  }
+}
+
+const batchRemove = async () => {
+  if (selectedIds.value.length === 0) return
+  try {
+    await ElMessageBox.confirm(
+      `确定要取消收藏选中的 ${selectedIds.value.length} 件商品吗？`,
+      '批量取消收藏',
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+    )
+    const res = await api.delete('/favorites/batch', { data: selectedIds.value })
+    if (res.code === 200) {
+      ElMessage.success(`已取消收藏 ${selectedIds.value.length} 件商品`)
+      selectedIds.value.forEach(id => favoriteStore.removeFavoriteId(id))
+      selectedIds.value = []
+      fetchFavorites()
+    }
+  } catch (e) {
+    // user cancelled or error handled
   }
 }
 
@@ -125,8 +197,20 @@ onMounted(() => {
 .page-header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
   margin-bottom: 20px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
 
   .back-btn {
     font-size: 14px;
@@ -161,11 +245,26 @@ onMounted(() => {
   overflow: hidden;
   box-shadow: var(--shadow);
   transition: var(--transition);
+  position: relative;
 
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
   }
+
+  &.card-selected {
+    outline: 2px solid var(--primary);
+  }
+}
+
+.card-checkbox {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 2px;
 }
 
 .product-img-wrapper {
