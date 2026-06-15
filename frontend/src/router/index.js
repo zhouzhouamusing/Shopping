@@ -46,6 +46,10 @@ const routes = [
       { path: 'products', name: 'AdminProducts', component: () => import('@/views/admin/ProductManage.vue') },
       { path: 'orders', name: 'AdminOrders', component: () => import('@/views/admin/OrderManage.vue') },
       { path: 'reviews', name: 'AdminReviews', component: () => import('@/views/admin/ReviewManage.vue') },
+      { path: 'users', name: 'AdminUsers', component: () => import('@/views/admin/UserManage.vue') },
+      { path: 'member-levels', name: 'AdminMemberLevels', component: () => import('@/views/admin/MemberLevelManage.vue') },
+      { path: 'points-rules', name: 'AdminPointsRules', component: () => import('@/views/admin/PointsRuleManage.vue') },
+      { path: 'promotions', name: 'AdminPromotions', component: () => import('@/views/admin/PromotionManage.vue') },
     ]
   }
 ]

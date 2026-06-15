@@ -31,6 +31,22 @@
           <el-icon><ChatDotRound /></el-icon>
           <span>评价管理</span>
         </el-menu-item>
+        <el-menu-item index="/admin/users">
+          <el-icon><User /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/member-levels">
+          <el-icon><Medal /></el-icon>
+          <span>会员等级</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/points-rules">
+          <el-icon><Coin /></el-icon>
+          <span>积分规则</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/promotions">
+          <el-icon><Present /></el-icon>
+          <span>促销活动</span>
+        </el-menu-item>
       </el-menu>
       <div class="sidebar-footer">
         <router-link to="/home" class="back-link">
@@ -72,7 +88,11 @@ const pageTitle = computed(() => {
     '/admin': '数据概览',
     '/admin/products': '商品管理',
     '/admin/orders': '订单管理',
-    '/admin/reviews': '评价管理'
+    '/admin/reviews': '评价管理',
+    '/admin/users': '用户管理',
+    '/admin/member-levels': '会员等级管理',
+    '/admin/points-rules': '积分规则管理',
+    '/admin/promotions': '促销活动管理'
   }
   return titles[route.path] || '后台管理'
 })

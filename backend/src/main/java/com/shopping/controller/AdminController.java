@@ -1,6 +1,7 @@
 package com.shopping.controller;
 
 import com.shopping.dto.ProductRequest;
+import com.shopping.dto.PromotionRequest;
 import com.shopping.dto.ReviewReplyRequest;
 import com.shopping.dto.CategoryPointsRuleRequest;
 import com.shopping.dto.MemberLevelRequest;
@@ -9,10 +10,17 @@ import com.shopping.dto.PointsCouponRequest;
 import com.shopping.dto.Result;
 import com.shopping.entity.Order;
 import com.shopping.entity.Product;
+import com.shopping.entity.Promotion;
 import com.shopping.entity.Review;
+import com.shopping.entity.User;
+import com.shopping.entity.UserMembership;
 import com.shopping.entity.MemberLevel;
 import com.shopping.entity.CategoryPointsRule;
 import com.shopping.entity.PointsCoupon;
+import com.shopping.repository.MemberLevelRepository;
+import com.shopping.repository.PromotionRepository;
+import com.shopping.repository.UserMembershipRepository;
+import com.shopping.repository.UserRepository;
 import com.shopping.service.OrderEventQueueService;
 import com.shopping.service.OrderService;
 import com.shopping.service.PriceCircuitBreakerService;
@@ -23,9 +31,13 @@ import com.shopping.service.PointsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 后台管理控制器 - 商品管理、订单管理（需ADMIN角色）
@@ -42,6 +54,10 @@ public class AdminController {
     private final OrderEventQueueService orderEventQueue;
     private final MembershipService membershipService;
     private final PointsService pointsService;
+    private final UserRepository userRepository;
+    private final UserMembershipRepository membershipRepository;
+    private final MemberLevelRepository memberLevelRepository;
+    private final PromotionRepository promotionRepository;
 
     // ==================== 商品管理 ====================
 
@@ -230,5 +246,107 @@ public class AdminController {
         Long operatorId = (Long) authentication.getPrincipal();
         return pointsService.adjustPoints(request.getUserId(), request.getPoints(),
                 request.getReason(), operatorId);
+    }
+
+    // ==================== 用户管理 ====================
+
+    @GetMapping("/users")
+    public Result<Page<User>> getAllUsers(@RequestParam(defaultValue = "0") int page,
+                                          @RequestParam(defaultValue = "10") int size,
+                                          @RequestParam(required = false) String keyword) {
+        Page<User> users;
+        if (keyword != null && !keyword.isBlank()) {
+            users = userRepository.findByUsernameContainingOrNicknameContainingOrPhoneContaining(
+                    keyword, keyword, keyword, PageRequest.of(page, size));
+        } else {
+            users = userRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
+        }
+        // Clear password field for security
+        users.getContent().forEach(u -> u.setPassword(null));
+        return Result.success(users);
+    }
+
+    @GetMapping("/users/{id}")
+    public Result<Map<String, Object>> getUserDetail(@PathVariable Long id) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+        user.setPassword(null);
+
+        UserMembership membership = membershipRepository.findByUserId(id).orElse(null);
+        MemberLevel level = null;
+        if (membership != null) {
+            level = memberLevelRepository.findById(membership.getLevelId()).orElse(null);
+        }
+
+        Map<String, Object> detail = new HashMap<>();
+        detail.put("user", user);
+        detail.put("membership", membership);
+        detail.put("level", level);
+        return Result.success(detail);
+    }
+
+    @PutMapping("/users/{id}/status")
+    public Result<Void> updateUserStatus(@PathVariable Long id, @RequestParam Integer status) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+        if ("ADMIN".equals(user.getRole())) {
+            return Result.error(400, "不能禁用管理员账号");
+        }
+        user.setStatus(status);
+        userRepository.save(user);
+        return Result.success();
+    }
+
+    // ==================== 促销活动管理 ====================
+
+    @GetMapping("/promotions")
+    public Result<Page<Promotion>> getPromotions(@RequestParam(defaultValue = "0") int page,
+                                                  @RequestParam(defaultValue = "10") int size) {
+        return Result.success(promotionRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size)));
+    }
+
+    @PostMapping("/promotions")
+    public Result<Promotion> createPromotion(@RequestBody PromotionRequest request) {
+        Promotion promotion = new Promotion();
+        promotion.setName(request.getName());
+        promotion.setType(request.getType());
+        promotion.setDescription(request.getDescription());
+        promotion.setDiscountValue(request.getDiscountValue());
+        promotion.setMinOrderAmount(request.getMinOrderAmount() != null ? request.getMinOrderAmount() : java.math.BigDecimal.ZERO);
+        promotion.setStartTime(request.getStartTime());
+        promotion.setEndTime(request.getEndTime());
+        promotion.setStatus(request.getStatus() != null ? request.getStatus() : 1);
+        promotion.setProductIds(request.getProductIds());
+        promotionRepository.save(promotion);
+        return Result.success(promotion);
+    }
+
+    @PutMapping("/promotions/{id}")
+    public Result<Promotion> updatePromotion(@PathVariable Long id, @RequestBody PromotionRequest request) {
+        Promotion promotion = promotionRepository.findById(id).orElse(null);
+        if (promotion == null) {
+            return Result.error(404, "促销活动不存在");
+        }
+        if (request.getName() != null) promotion.setName(request.getName());
+        if (request.getType() != null) promotion.setType(request.getType());
+        if (request.getDescription() != null) promotion.setDescription(request.getDescription());
+        if (request.getDiscountValue() != null) promotion.setDiscountValue(request.getDiscountValue());
+        if (request.getMinOrderAmount() != null) promotion.setMinOrderAmount(request.getMinOrderAmount());
+        if (request.getStartTime() != null) promotion.setStartTime(request.getStartTime());
+        if (request.getEndTime() != null) promotion.setEndTime(request.getEndTime());
+        if (request.getStatus() != null) promotion.setStatus(request.getStatus());
+        if (request.getProductIds() != null) promotion.setProductIds(request.getProductIds());
+        promotionRepository.save(promotion);
+        return Result.success(promotion);
+    }
+
+    @DeleteMapping("/promotions/{id}")
+    public Result<Void> deletePromotion(@PathVariable Long id) {
+        promotionRepository.deleteById(id);
+        return Result.success();
     }
 }

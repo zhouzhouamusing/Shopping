@@ -263,3 +263,24 @@ CREATE TABLE IF NOT EXISTS `compare_items` (
     UNIQUE KEY `uk_user_product` (`user_id`, `product_id`),
     KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品对比表';
+
+-- ========================================
+-- 13. 促销活动表
+-- ========================================
+CREATE TABLE IF NOT EXISTS `promotions` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '活动ID',
+    `name` VARCHAR(100) NOT NULL COMMENT '活动名称',
+    `type` VARCHAR(20) NOT NULL COMMENT '活动类型：FLASH_SALE/FULL_REDUCTION',
+    `description` VARCHAR(500) DEFAULT NULL COMMENT '活动描述',
+    `discount_value` DECIMAL(10,2) NOT NULL COMMENT '优惠值（折扣率或减免金额）',
+    `min_order_amount` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '最低订单金额',
+    `start_time` DATETIME NOT NULL COMMENT '开始时间',
+    `end_time` DATETIME NOT NULL COMMENT '结束时间',
+    `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态：0-停用 1-启用',
+    `product_ids` TEXT COMMENT '适用商品ID（逗号分隔，NULL表示全部）',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_status` (`status`),
+    KEY `idx_time` (`start_time`, `end_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='促销活动表';
