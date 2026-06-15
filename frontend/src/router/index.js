@@ -23,6 +23,7 @@ const routes = [
       { path: '/favorites', name: 'Favorites', component: () => import('@/views/Favorites.vue') },
       { path: '/history', name: 'History', component: () => import('@/views/History.vue') },
       { path: '/comparison', name: 'Comparison', component: () => import('@/views/Comparison.vue') },
+      { path: '/merchant-apply', name: 'MerchantApply', component: () => import('@/views/MerchantApply.vue') },
     ]
   },
   {
@@ -47,9 +48,21 @@ const routes = [
       { path: 'orders', name: 'AdminOrders', component: () => import('@/views/admin/OrderManage.vue') },
       { path: 'reviews', name: 'AdminReviews', component: () => import('@/views/admin/ReviewManage.vue') },
       { path: 'users', name: 'AdminUsers', component: () => import('@/views/admin/UserManage.vue') },
+      { path: 'merchants', name: 'AdminMerchants', component: () => import('@/views/admin/MerchantManage.vue') },
       { path: 'member-levels', name: 'AdminMemberLevels', component: () => import('@/views/admin/MemberLevelManage.vue') },
       { path: 'points-rules', name: 'AdminPointsRules', component: () => import('@/views/admin/PointsRuleManage.vue') },
       { path: 'promotions', name: 'AdminPromotions', component: () => import('@/views/admin/PromotionManage.vue') },
+    ]
+  },
+  {
+    path: '/merchant',
+    component: () => import('@/layouts/AdminLayout.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true },
+    children: [
+      { path: '', name: 'MerchantDashboard', component: () => import('@/views/merchant/Dashboard.vue') },
+      { path: 'products', name: 'MerchantProducts', component: () => import('@/views/merchant/ProductManage.vue') },
+      { path: 'orders', name: 'MerchantOrders', component: () => import('@/views/merchant/OrderManage.vue') },
+      { path: 'reviews', name: 'MerchantReviews', component: () => import('@/views/merchant/ReviewManage.vue') },
     ]
   }
 ]
@@ -65,14 +78,17 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
 
-  // 需要认证的页面，未登录则跳转登录
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
     return
   }
 
-  // 需要管理员权限
   if (to.meta.requiresAdmin && userStore.user?.role !== 'ADMIN') {
+    next({ name: 'Home' })
+    return
+  }
+
+  if (to.meta.requiresMerchant && userStore.user?.role !== 'MERCHANT') {
     next({ name: 'Home' })
     return
   }

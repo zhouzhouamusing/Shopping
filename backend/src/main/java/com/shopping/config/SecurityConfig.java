@@ -40,6 +40,8 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // 管理员接口
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // 商家接口
+                .requestMatchers("/api/merchant/**").hasRole("MERCHANT")
                 // 其他接口需要认证
                 .anyRequest().authenticated()
             )

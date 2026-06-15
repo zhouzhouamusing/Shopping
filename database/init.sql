@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `phone` VARCHAR(20) DEFAULT NULL COMMENT '手机号',
     `nickname` VARCHAR(50) DEFAULT NULL COMMENT '昵称',
     `avatar` VARCHAR(255) DEFAULT NULL COMMENT '头像URL',
-    `role` VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '角色：USER/ADMIN',
+    `role` VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '角色：USER/MERCHANT/ADMIN',
     `status` TINYINT NOT NULL DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -284,3 +284,28 @@ CREATE TABLE IF NOT EXISTS `promotions` (
     KEY `idx_status` (`status`),
     KEY `idx_time` (`start_time`, `end_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='促销活动表';
+
+-- ========================================
+-- 商家入驻申请表
+-- ========================================
+CREATE TABLE IF NOT EXISTS `merchant_applications` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '申请ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `shop_name` VARCHAR(100) NOT NULL COMMENT '店铺名称',
+    `business_license` VARCHAR(255) DEFAULT NULL COMMENT '营业执照编号',
+    `contact_name` VARCHAR(50) NOT NULL COMMENT '联系人姓名',
+    `contact_phone` VARCHAR(20) NOT NULL COMMENT '联系电话',
+    `description` TEXT COMMENT '店铺描述',
+    `status` VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态：PENDING/APPROVED/REJECTED',
+    `reject_reason` VARCHAR(500) DEFAULT NULL COMMENT '拒绝原因',
+    `reviewed_by` BIGINT DEFAULT NULL COMMENT '审核人ID',
+    `reviewed_at` DATETIME DEFAULT NULL COMMENT '审核时间',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商家入驻申请表';
+
+-- 商品表新增商家ID字段
+ALTER TABLE `products` ADD COLUMN `merchant_id` BIGINT DEFAULT NULL COMMENT '商家ID' AFTER `category_id`;

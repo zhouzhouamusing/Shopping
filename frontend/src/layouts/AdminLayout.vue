@@ -5,7 +5,7 @@
       <div class="sidebar-header">
         <router-link to="/home" class="admin-logo">
           <el-icon :size="24"><ShoppingCart /></el-icon>
-          <span>潮购后台</span>
+          <span>{{ headerTitle }}</span>
         </router-link>
       </div>
       <el-menu
@@ -15,37 +15,9 @@
         text-color="rgba(255,255,255,0.7)"
         active-text-color="#00d4aa"
       >
-        <el-menu-item index="/admin">
-          <el-icon><DataAnalysis /></el-icon>
-          <span>数据概览</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/products">
-          <el-icon><Goods /></el-icon>
-          <span>商品管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/orders">
-          <el-icon><List /></el-icon>
-          <span>订单管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/reviews">
-          <el-icon><ChatDotRound /></el-icon>
-          <span>评价管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/users">
-          <el-icon><User /></el-icon>
-          <span>用户管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/member-levels">
-          <el-icon><Medal /></el-icon>
-          <span>会员等级</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/points-rules">
-          <el-icon><Coin /></el-icon>
-          <span>积分规则</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/promotions">
-          <el-icon><Present /></el-icon>
-          <span>促销活动</span>
+        <el-menu-item v-for="item in menuItems" :key="item.path" :index="item.path">
+          <el-icon><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
         </el-menu-item>
       </el-menu>
       <div class="sidebar-footer">
@@ -61,6 +33,8 @@
       <header class="admin-header">
         <h2>{{ pageTitle }}</h2>
         <div class="admin-user">
+          <el-tag v-if="isMerchant" type="warning" size="small" style="margin-right: 8px;">商家</el-tag>
+          <el-tag v-if="isAdmin" type="danger" size="small" style="margin-right: 8px;">管理员</el-tag>
           <span>{{ userStore.user?.nickname }}</span>
           <el-button text @click="handleLogout">退出</el-button>
         </div>
@@ -81,20 +55,44 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+const isAdmin = computed(() => userStore.user?.role === 'ADMIN')
+const isMerchant = computed(() => userStore.user?.role === 'MERCHANT')
+
 const activeMenu = computed(() => route.path)
 
-const pageTitle = computed(() => {
-  const titles = {
-    '/admin': '数据概览',
-    '/admin/products': '商品管理',
-    '/admin/orders': '订单管理',
-    '/admin/reviews': '评价管理',
-    '/admin/users': '用户管理',
-    '/admin/member-levels': '会员等级管理',
-    '/admin/points-rules': '积分规则管理',
-    '/admin/promotions': '促销活动管理'
+const menuItems = computed(() => {
+  if (isAdmin.value) {
+    return [
+      { path: '/admin', label: '数据概览', icon: 'DataAnalysis' },
+      { path: '/admin/products', label: '商品管理', icon: 'Goods' },
+      { path: '/admin/orders', label: '订单管理', icon: 'List' },
+      { path: '/admin/reviews', label: '评价管理', icon: 'ChatDotRound' },
+      { path: '/admin/users', label: '用户管理', icon: 'User' },
+      { path: '/admin/merchants', label: '商家管理', icon: 'Shop' },
+      { path: '/admin/member-levels', label: '会员等级', icon: 'Medal' },
+      { path: '/admin/points-rules', label: '积分规则', icon: 'Coin' },
+      { path: '/admin/promotions', label: '促销活动', icon: 'Present' },
+    ]
+  } else if (isMerchant.value) {
+    return [
+      { path: '/merchant', label: '数据概览', icon: 'DataAnalysis' },
+      { path: '/merchant/products', label: '我的商品', icon: 'Goods' },
+      { path: '/merchant/orders', label: '订单管理', icon: 'List' },
+      { path: '/merchant/reviews', label: '评价管理', icon: 'ChatDotRound' },
+    ]
   }
-  return titles[route.path] || '后台管理'
+  return []
+})
+
+const headerTitle = computed(() => {
+  if (isAdmin.value) return '潮购后台'
+  if (isMerchant.value) return '商家中心'
+  return '后台管理'
+})
+
+const pageTitle = computed(() => {
+  const item = menuItems.value.find(m => m.path === route.path)
+  return item?.label || (isAdmin.value ? '后台管理' : '商家中心')
 })
 
 const handleLogout = () => {

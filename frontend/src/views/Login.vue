@@ -148,8 +148,16 @@ const handleLogin = async () => {
     const res = await userStore.login(form)
     if (res.code === 200) {
       ElMessage.success('登录成功！')
-      const redirect = route.query.redirect || '/home'
-      router.push(redirect)
+      const redirect = route.query.redirect
+      if (redirect) {
+        router.push(redirect)
+      } else if (res.data.role === 'ADMIN') {
+        router.push('/admin')
+      } else if (res.data.role === 'MERCHANT') {
+        router.push('/merchant')
+      } else {
+        router.push('/home')
+      }
     } else {
       ElMessage.error(res.message)
     }

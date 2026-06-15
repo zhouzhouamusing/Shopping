@@ -44,6 +44,9 @@ public class Product {
     @Column(name = "category_id")
     private Long categoryId;
 
+    @Column(name = "merchant_id")
+    private Long merchantId;
+
     @Column(nullable = false)
     private Integer status = 1;
 

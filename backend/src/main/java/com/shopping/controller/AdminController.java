@@ -5,6 +5,7 @@ import com.shopping.dto.PromotionRequest;
 import com.shopping.dto.ReviewReplyRequest;
 import com.shopping.dto.CategoryPointsRuleRequest;
 import com.shopping.dto.MemberLevelRequest;
+import com.shopping.dto.MerchantApplicationReviewRequest;
 import com.shopping.dto.PointsAdjustRequest;
 import com.shopping.dto.PointsCouponRequest;
 import com.shopping.dto.Result;
@@ -15,12 +16,14 @@ import com.shopping.entity.Review;
 import com.shopping.entity.User;
 import com.shopping.entity.UserMembership;
 import com.shopping.entity.MemberLevel;
+import com.shopping.entity.MerchantApplication;
 import com.shopping.entity.CategoryPointsRule;
 import com.shopping.entity.PointsCoupon;
 import com.shopping.repository.MemberLevelRepository;
 import com.shopping.repository.PromotionRepository;
 import com.shopping.repository.UserMembershipRepository;
 import com.shopping.repository.UserRepository;
+import com.shopping.service.MerchantApplicationService;
 import com.shopping.service.OrderEventQueueService;
 import com.shopping.service.OrderService;
 import com.shopping.service.PriceCircuitBreakerService;
@@ -54,6 +57,7 @@ public class AdminController {
     private final OrderEventQueueService orderEventQueue;
     private final MembershipService membershipService;
     private final PointsService pointsService;
+    private final MerchantApplicationService merchantApplicationService;
     private final UserRepository userRepository;
     private final UserMembershipRepository membershipRepository;
     private final MemberLevelRepository memberLevelRepository;
@@ -348,5 +352,23 @@ public class AdminController {
     public Result<Void> deletePromotion(@PathVariable Long id) {
         promotionRepository.deleteById(id);
         return Result.success();
+    }
+
+    // ==================== 商家入驻审批 ====================
+
+    @GetMapping("/merchant-applications")
+    public Result<Page<MerchantApplication>> getMerchantApplications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status) {
+        return merchantApplicationService.getAllApplications(page, size, status);
+    }
+
+    @PutMapping("/merchant-applications/{id}/review")
+    public Result<Void> reviewMerchantApplication(@PathVariable Long id,
+                                                   @RequestBody MerchantApplicationReviewRequest request,
+                                                   Authentication authentication) {
+        Long reviewerId = (Long) authentication.getPrincipal();
+        return merchantApplicationService.reviewApplication(id, request, reviewerId);
     }
 }

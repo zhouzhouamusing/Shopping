@@ -30,4 +30,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query("SELECT COUNT(r) FROM Review r WHERE r.productId = :productId AND r.status = 'APPROVED'")
     Long getApprovedCountByProductId(@Param("productId") Long productId);
+
+    @Query("SELECT r FROM Review r JOIN Product p ON p.id = r.productId WHERE p.merchantId = :merchantId ORDER BY r.createdAt DESC")
+    Page<Review> findByMerchantId(@Param("merchantId") Long merchantId, Pageable pageable);
 }

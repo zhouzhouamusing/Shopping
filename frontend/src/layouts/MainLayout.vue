@@ -43,6 +43,18 @@
             <span class="action-text">后台管理</span>
           </router-link>
 
+          <!-- 商家中心入口 -->
+          <router-link to="/merchant" class="action-item merchant-btn" v-if="userStore.isMerchant">
+            <el-icon :size="20"><Shop /></el-icon>
+            <span class="action-text">商家中心</span>
+          </router-link>
+
+          <!-- 商家入驻入口 -->
+          <router-link to="/merchant-apply" class="action-item" v-if="userStore.isLoggedIn && !userStore.isAdmin && !userStore.isMerchant">
+            <el-icon :size="20"><Shop /></el-icon>
+            <span class="action-text">商家入驻</span>
+          </router-link>
+
           <router-link to="/cart" class="action-item cart-btn">
             <el-badge :value="cartStore.totalCount" :hidden="cartStore.totalCount === 0">
               <el-icon :size="22"><ShoppingCart /></el-icon>
@@ -72,6 +84,9 @@
                 <el-dropdown-menu>
                   <el-dropdown-item v-if="userStore.isAdmin" command="admin">
                     <el-icon><Setting /></el-icon>后台管理
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="userStore.isMerchant" command="merchant">
+                    <el-icon><Shop /></el-icon>商家中心
                   </el-dropdown-item>
                   <el-dropdown-item command="orders">
                     <el-icon><List /></el-icon>我的订单
@@ -171,6 +186,9 @@ const handleCommand = (command) => {
   switch (command) {
     case 'admin':
       router.push('/admin')
+      break
+    case 'merchant':
+      router.push('/merchant')
       break
     case 'orders':
       router.push('/orders')
@@ -367,6 +385,20 @@ onUnmounted(() => {
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
     background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+  }
+}
+
+.merchant-btn {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: white !important;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 500;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
   }
 }
 
