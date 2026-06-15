@@ -70,7 +70,7 @@ public class MembershipService {
 
             boolean spendingMet = membership.getTotalSpending().compareTo(nextLevel.getMinSpending()) >= 0;
             boolean pointsMet = membership.getTotalEarnedPoints() >= nextLevel.getMinPoints();
-            if (spendingMet || pointsMet) {
+            if (spendingMet && pointsMet) {
                 upgraded = nextLevel;
             } else {
                 break;

@@ -2,8 +2,14 @@ server:
   port: 8084
 
 spring:
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
   datasource:
-    url: jdbc:mysql://localhost:3306/shopping_db?characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://localhost:3306/shopping_db?characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&zeroDateTimeBehavior=convertToNull
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver

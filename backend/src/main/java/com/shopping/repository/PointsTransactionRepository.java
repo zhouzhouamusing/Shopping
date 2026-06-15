@@ -15,7 +15,7 @@ public interface PointsTransactionRepository extends JpaRepository<PointsTransac
 
     List<PointsTransaction> findByOrderNoAndType(String orderNo, String type);
 
-    List<PointsTransaction> findByTypeAndExpiredFalseAndExpireTimeBefore(String type, LocalDateTime time);
+    List<PointsTransaction> findByTypeAndExpiredFalseAndExpireTimeBeforeOrderByExpireTimeAsc(String type, LocalDateTime time);
 
     @Query("SELECT COALESCE(SUM(pt.points), 0) FROM PointsTransaction pt " +
             "WHERE pt.userId = :userId AND pt.type = 'EARN' AND pt.expired = false " +

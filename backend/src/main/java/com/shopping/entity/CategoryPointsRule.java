@@ -20,6 +20,9 @@ public class CategoryPointsRule {
     @Column(name = "points_rate", nullable = false, precision = 5, scale = 4)
     private BigDecimal pointsRate = new BigDecimal("0.0100");
 
+    @Column(name = "points_per_yuan", nullable = false)
+    private Integer pointsPerYuan = 1;
+
     @Column(name = "start_time")
     private LocalDateTime startTime;
 

@@ -192,6 +192,9 @@ public class PointsService {
         if (coupon == null || coupon.getStatus() != 1) {
             return Result.error(400, "优惠券不存在或已停用");
         }
+        if (userCouponRepository.existsByUserIdAndCouponId(userId, couponId)) {
+            return Result.error(400, "您已兑换过该优惠券，不可重复兑换");
+        }
         if (coupon.getRemainingStock() != -1 && coupon.getRemainingStock() <= 0) {
             return Result.error(400, "优惠券已兑完");
         }
@@ -438,7 +441,7 @@ public class PointsService {
     public void cleanExpiredPoints() {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         List<PointsTransaction> expiredList = transactionRepository
-                .findByTypeAndExpiredFalseAndExpireTimeBefore("EARN", now);
+                .findByTypeAndExpiredFalseAndExpireTimeBeforeOrderByExpireTimeAsc("EARN", now);
 
         for (PointsTransaction tx : expiredList) {
             tx.setExpired(true);

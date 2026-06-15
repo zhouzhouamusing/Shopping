@@ -41,6 +41,9 @@ public class Promotion {
     @Column(name = "product_ids", columnDefinition = "TEXT")
     private String productIds;
 
+    @Column(nullable = false)
+    private Integer priority = 0;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
