@@ -4,8 +4,10 @@ import com.shopping.dto.MerchantApplicationRequest;
 import com.shopping.dto.MerchantApplicationReviewRequest;
 import com.shopping.dto.Result;
 import com.shopping.entity.MerchantApplication;
+import com.shopping.entity.Shop;
 import com.shopping.entity.User;
 import com.shopping.repository.MerchantApplicationRepository;
+import com.shopping.repository.ShopRepository;
 import com.shopping.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,6 +24,7 @@ public class MerchantApplicationService {
 
     private final MerchantApplicationRepository applicationRepository;
     private final UserRepository userRepository;
+    private final ShopRepository shopRepository;
 
     public Result<MerchantApplication> submitApplication(Long userId, MerchantApplicationRequest request) {
         if (applicationRepository.existsByUserIdAndStatusIn(userId, Arrays.asList("PENDING", "APPROVED"))) {
@@ -84,6 +87,16 @@ public class MerchantApplicationService {
             if (user != null) {
                 user.setRole("MERCHANT");
                 userRepository.save(user);
+
+                Shop shop = new Shop();
+                shop.setMerchantId(user.getId());
+                shop.setShopName(application.getShopName());
+                shop.setDescription(application.getDescription());
+                shop.setContactName(application.getContactName());
+                shop.setContactPhone(application.getContactPhone());
+                shop.setBusinessLicense(application.getBusinessLicense());
+                shop.setStatus(1);
+                shopRepository.save(shop);
             }
         } else {
             application.setStatus("REJECTED");

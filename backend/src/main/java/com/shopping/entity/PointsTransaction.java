@@ -37,6 +37,9 @@ public class PointsTransaction {
     @Column(name = "expired", nullable = false)
     private Boolean expired = false;
 
+    @Column(name = "remaining_points")
+    private Integer remainingPoints;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -1,17 +1,21 @@
 package com.shopping.service;
 
+import com.shopping.entity.OrderEvent;
+import com.shopping.repository.OrderEventRepository;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -25,13 +29,10 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class OrderEventQueueService {
 
-    // 事件队列（生产环境替换为 RabbitMQ/Kafka）
-    private final BlockingQueue<OrderStatusEvent> eventQueue = new LinkedBlockingQueue<>(10000);
-
-    // 死信队列：重试多次仍失败的事件
-    private final BlockingQueue<OrderStatusEvent> deadLetterQueue = new LinkedBlockingQueue<>(1000);
+    private final OrderEventRepository eventRepository;
 
     // 监控指标
     private final AtomicLong totalPublished = new AtomicLong(0);
@@ -40,51 +41,54 @@ public class OrderEventQueueService {
     private final AtomicLong totalRetried = new AtomicLong(0);
     private final ConcurrentHashMap<String, Long> statusChangeCounter = new ConcurrentHashMap<>();
 
-    // 告警阈值
-    private static final int QUEUE_SIZE_ALERT_THRESHOLD = 5000;
-    private static final int DEAD_LETTER_ALERT_THRESHOLD = 10;
     private static final int MAX_RETRY_COUNT = 3;
+    private static final int BATCH_SIZE = 50;
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void onStartup() {
+        long pending = eventRepository.countByStatus("PENDING");
+        if (pending > 0) {
+            log.info("[事件队列] 启动恢复: 发现{}条未处理事件，将在下次轮询时处理", pending);
+        }
+    }
 
     /**
-     * 发布订单状态变更事件
+     * 发布订单状态变更事件（持久化到数据库）
      */
+    @Transactional
     public void publishStatusChangeEvent(String orderNo, Integer fromStatus, Integer toStatus,
                                           String operator, String reason) {
-        OrderStatusEvent event = new OrderStatusEvent();
+        OrderEvent event = new OrderEvent();
         event.setOrderNo(orderNo);
         event.setFromStatus(fromStatus);
         event.setToStatus(toStatus);
         event.setOperator(operator);
         event.setReason(reason);
-        event.setTimestamp(LocalDateTime.now());
         event.setRetryCount(0);
+        event.setStatus("PENDING");
+        eventRepository.save(event);
 
-        boolean offered = eventQueue.offer(event);
-        if (offered) {
-            totalPublished.incrementAndGet();
-            String key = fromStatus + "->" + toStatus;
-            statusChangeCounter.merge(key, 1L, Long::sum);
-            log.info("[事件队列] 发布状态变更事件: orderNo={}, {}→{}, operator={}",
-                    orderNo, getStatusName(fromStatus), getStatusName(toStatus), operator);
-        } else {
-            totalFailed.incrementAndGet();
-            log.error("[事件队列] 队列已满，事件丢失: orderNo={}, {}→{}",
-                    orderNo, fromStatus, toStatus);
-            triggerAlert("EVENT_QUEUE_FULL", "事件队列已满，状态变更事件丢失: " + orderNo);
-        }
+        totalPublished.incrementAndGet();
+        String key = fromStatus + "->" + toStatus;
+        statusChangeCounter.merge(key, 1L, Long::sum);
+        log.info("[事件队列] 发布状态变更事件: orderNo={}, {}→{}, operator={}",
+                orderNo, getStatusName(fromStatus), getStatusName(toStatus), operator);
     }
 
     /**
-     * 消费事件队列（定时轮询）
+     * 消费事件队列（定时轮询数据库）
      */
     @Scheduled(fixedDelay = 2000)
+    @Transactional
     public void consumeEvents() {
-        List<OrderStatusEvent> batch = new ArrayList<>();
-        eventQueue.drainTo(batch, 50);
+        List<OrderEvent> batch = eventRepository.findByStatusOrderByCreatedAtAsc("PENDING", PageRequest.of(0, BATCH_SIZE));
 
-        for (OrderStatusEvent event : batch) {
+        for (OrderEvent event : batch) {
             try {
                 processEvent(event);
+                event.setStatus("PROCESSED");
+                event.setProcessedAt(LocalDateTime.now());
+                eventRepository.save(event);
                 totalConsumed.incrementAndGet();
             } catch (Exception e) {
                 handleEventFailure(event, e);
@@ -97,34 +101,23 @@ public class OrderEventQueueService {
      */
     @Scheduled(fixedRate = 30000)
     public void monitorHealth() {
-        int queueSize = eventQueue.size();
-        int deadLetterSize = deadLetterQueue.size();
+        long pendingCount = eventRepository.countByStatus("PENDING");
+        long deadCount = eventRepository.countByStatus("DEAD");
 
-        if (queueSize > QUEUE_SIZE_ALERT_THRESHOLD) {
+        if (pendingCount > 5000) {
             triggerAlert("QUEUE_BACKLOG",
-                    String.format("事件队列积压告警: 当前%d条, 阈值%d条", queueSize, QUEUE_SIZE_ALERT_THRESHOLD));
+                    String.format("事件队列积压告警: 当前%d条待处理", pendingCount));
         }
-
-        if (deadLetterSize > DEAD_LETTER_ALERT_THRESHOLD) {
+        if (deadCount > 10) {
             triggerAlert("DEAD_LETTER_OVERFLOW",
-                    String.format("死信队列告警: 当前%d条, 阈值%d条", deadLetterSize, DEAD_LETTER_ALERT_THRESHOLD));
-        }
-
-        long failed = totalFailed.get();
-        long total = totalPublished.get();
-        if (total > 100 && (double) failed / total > 0.1) {
-            triggerAlert("HIGH_FAILURE_RATE",
-                    String.format("事件处理失败率过高: %.1f%% (%d/%d)", (double) failed / total * 100, failed, total));
+                    String.format("死信队列告警: 当前%d条", deadCount));
         }
     }
 
-    /**
-     * 获取监控数据
-     */
     public MonitoringData getMonitoringData() {
         MonitoringData data = new MonitoringData();
-        data.setQueueSize(eventQueue.size());
-        data.setDeadLetterSize(deadLetterQueue.size());
+        data.setQueueSize((int) eventRepository.countByStatus("PENDING"));
+        data.setDeadLetterSize((int) eventRepository.countByStatus("DEAD"));
         data.setTotalPublished(totalPublished.get());
         data.setTotalConsumed(totalConsumed.get());
         data.setTotalFailed(totalFailed.get());
@@ -133,34 +126,35 @@ public class OrderEventQueueService {
         return data;
     }
 
-    /**
-     * 获取死信队列中的事件
-     */
     public List<OrderStatusEvent> getDeadLetterEvents(int limit) {
-        List<OrderStatusEvent> events = new ArrayList<>();
-        int count = Math.min(limit, deadLetterQueue.size());
-        for (int i = 0; i < count; i++) {
-            OrderStatusEvent event = deadLetterQueue.peek();
-            if (event != null) events.add(event);
+        List<OrderEvent> deadEvents = eventRepository.findByStatusOrderByCreatedAtAsc("DEAD", PageRequest.of(0, limit));
+        List<OrderStatusEvent> result = new ArrayList<>();
+        for (OrderEvent e : deadEvents) {
+            OrderStatusEvent dto = new OrderStatusEvent();
+            dto.setOrderNo(e.getOrderNo());
+            dto.setFromStatus(e.getFromStatus());
+            dto.setToStatus(e.getToStatus());
+            dto.setOperator(e.getOperator());
+            dto.setReason(e.getReason());
+            dto.setTimestamp(e.getCreatedAt());
+            dto.setRetryCount(e.getRetryCount());
+            dto.setLastError(e.getLastError());
+            result.add(dto);
         }
-        return events;
+        return result;
     }
 
-    /**
-     * 手动重试死信队列事件
-     */
+    @Transactional
     public int retryDeadLetterEvents() {
-        List<OrderStatusEvent> events = new ArrayList<>();
-        deadLetterQueue.drainTo(events);
+        List<OrderEvent> deadEvents = eventRepository.findByStatusOrderByCreatedAtAsc("DEAD");
         int retried = 0;
-        for (OrderStatusEvent event : events) {
+        for (OrderEvent event : deadEvents) {
             event.setRetryCount(0);
-            if (eventQueue.offer(event)) {
-                retried++;
-                totalRetried.incrementAndGet();
-            } else {
-                deadLetterQueue.offer(event);
-            }
+            event.setStatus("PENDING");
+            event.setLastError(null);
+            eventRepository.save(event);
+            retried++;
+            totalRetried.incrementAndGet();
         }
         log.info("[事件队列] 手动重试死信队列: {}条事件重新入队", retried);
         return retried;
@@ -168,28 +162,26 @@ public class OrderEventQueueService {
 
     // ===== 内部方法 =====
 
-    private void processEvent(OrderStatusEvent event) {
-        // 模拟事件处理：通知相关系统
+    private void processEvent(OrderEvent event) {
         log.info("[事件消费] 处理状态变更: orderNo={}, {}→{}, operator={}, timestamp={}",
                 event.getOrderNo(),
                 getStatusName(event.getFromStatus()),
                 getStatusName(event.getToStatus()),
                 event.getOperator(),
-                event.getTimestamp());
+                event.getCreatedAt());
 
-        // 模拟通知下游系统
         notifyInventorySystem(event);
         notifyNotificationSystem(event);
         notifyAnalyticsSystem(event);
     }
 
-    private void notifyInventorySystem(OrderStatusEvent event) {
+    private void notifyInventorySystem(OrderEvent event) {
         if (event.getToStatus() == 6 || event.getToStatus() == 5) {
             log.info("[库存通知] 订单取消/退款，触发库存恢复: orderNo={}", event.getOrderNo());
         }
     }
 
-    private void notifyNotificationSystem(OrderStatusEvent event) {
+    private void notifyNotificationSystem(OrderEvent event) {
         switch (event.getToStatus()) {
             case 1 -> log.info("[消息通知] 通知用户支付成功: orderNo={}", event.getOrderNo());
             case 2 -> log.info("[消息通知] 通知用户已发货: orderNo={}", event.getOrderNo());
@@ -200,33 +192,32 @@ public class OrderEventQueueService {
         }
     }
 
-    private void notifyAnalyticsSystem(OrderStatusEvent event) {
+    private void notifyAnalyticsSystem(OrderEvent event) {
         log.debug("[数据分析] 上报状态变更事件: orderNo={}, transition={}→{}",
                 event.getOrderNo(), event.getFromStatus(), event.getToStatus());
     }
 
-    private void handleEventFailure(OrderStatusEvent event, Exception e) {
+    private void handleEventFailure(OrderEvent event, Exception e) {
         event.setRetryCount(event.getRetryCount() + 1);
         event.setLastError(e.getMessage());
 
         if (event.getRetryCount() >= MAX_RETRY_COUNT) {
-            deadLetterQueue.offer(event);
+            event.setStatus("DEAD");
             totalFailed.incrementAndGet();
-            log.error("[事件队列] 事件处理失败已达最大重试次数，移入死信队列: orderNo={}, error={}",
+            log.error("[事件队列] 事件处理失败已达最大重试次数，移入死信: orderNo={}, error={}",
                     event.getOrderNo(), e.getMessage());
             triggerAlert("EVENT_PROCESSING_FAILED",
                     "事件处理失败: orderNo=" + event.getOrderNo() + ", error=" + e.getMessage());
         } else {
-            eventQueue.offer(event);
             totalRetried.incrementAndGet();
-            log.warn("[事件队列] 事件处理失败，重新入队(第{}次): orderNo={}, error={}",
+            log.warn("[事件队列] 事件处理失败，将重试(第{}次): orderNo={}, error={}",
                     event.getRetryCount(), event.getOrderNo(), e.getMessage());
         }
+        eventRepository.save(event);
     }
 
     private void triggerAlert(String alertType, String message) {
         log.error("[监控告警] type={}, message={}", alertType, message);
-        // 生产环境：发送到告警平台（钉钉/企微/PagerDuty等）
     }
 
     private String getStatusName(Integer status) {

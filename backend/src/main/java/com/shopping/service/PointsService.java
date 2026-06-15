@@ -94,6 +94,7 @@ public class PointsService {
         transaction.setUserId(order.getUserId());
         transaction.setType("EARN");
         transaction.setPoints(finalPoints);
+        transaction.setRemainingPoints(finalPoints);
         transaction.setBalanceAfter(membership.getTotalPoints());
         transaction.setOrderNo(orderNo);
         transaction.setReason("订单完成奖励");
@@ -144,9 +145,11 @@ public class PointsService {
             restoreTx.setUserId(order.getUserId());
             restoreTx.setType("EARN");
             restoreTx.setPoints(order.getPointsUsed());
+            restoreTx.setRemainingPoints(order.getPointsUsed());
             restoreTx.setBalanceAfter(membership.getTotalPoints());
             restoreTx.setOrderNo(orderNo);
             restoreTx.setReason("退款返还抵扣积分");
+            restoreTx.setExpireTime(java.time.LocalDateTime.now().plusDays(pointsExpireDays));
             transactionRepository.save(restoreTx);
         }
 
@@ -168,6 +171,18 @@ public class PointsService {
         }
 
         BigDecimal discount = BigDecimal.valueOf(points).multiply(POINTS_TO_YUAN);
+
+        // FIFO消耗：按过期时间从早到晚扣减EARN记录的remainingPoints
+        List<PointsTransaction> consumable = transactionRepository.findConsumableByUserId(userId);
+        int remaining = points;
+        for (PointsTransaction earn : consumable) {
+            if (remaining <= 0) break;
+            int available = earn.getRemainingPoints() != null ? earn.getRemainingPoints() : earn.getPoints();
+            int consume = Math.min(available, remaining);
+            earn.setRemainingPoints(available - consume);
+            transactionRepository.save(earn);
+            remaining -= consume;
+        }
 
         membership.setTotalPoints(membership.getTotalPoints() - points);
         membershipRepository.save(membership);
@@ -198,10 +213,6 @@ public class PointsService {
         if (coupon.getRemainingStock() != -1 && coupon.getRemainingStock() <= 0) {
             return Result.error(400, "优惠券已兑完");
         }
-        if (coupon.getTotalStock() != -1 && coupon.getRemainingStock() != -1
-                && coupon.getRemainingStock() > coupon.getTotalStock()) {
-            return Result.error(400, "优惠券库存数据异常");
-        }
 
         UserMembership membership = membershipRepository.findByUserIdForUpdate(userId).orElse(null);
         if (membership == null) {
@@ -211,13 +222,16 @@ public class PointsService {
             return Result.error(400, "积分余额不足");
         }
 
+        // 原子扣减库存，防止超卖
+        if (coupon.getRemainingStock() != -1) {
+            int updated = couponRepository.decrementStock(couponId);
+            if (updated == 0) {
+                return Result.error(400, "优惠券已兑完");
+            }
+        }
+
         membership.setTotalPoints(membership.getTotalPoints() - coupon.getPointsCost());
         membershipRepository.save(membership);
-
-        if (coupon.getRemainingStock() != -1) {
-            coupon.setRemainingStock(coupon.getRemainingStock() - 1);
-            couponRepository.save(coupon);
-        }
 
         UserCoupon userCoupon = new UserCoupon();
         userCoupon.setUserId(userId);
@@ -340,6 +354,7 @@ public class PointsService {
         tx.setReason("管理员(ID:" + operatorId + ")调整: " + reason);
         if (points > 0) {
             tx.setExpireTime(java.time.LocalDateTime.now().plusDays(pointsExpireDays));
+            tx.setRemainingPoints(points);
         }
         transactionRepository.save(tx);
 
@@ -445,14 +460,22 @@ public class PointsService {
 
         for (PointsTransaction tx : expiredList) {
             tx.setExpired(true);
+
+            // 只过期剩余未消耗的积分
+            int remaining = tx.getRemainingPoints() != null ? tx.getRemainingPoints() : tx.getPoints();
+            tx.setRemainingPoints(0);
             transactionRepository.save(tx);
+
+            if (remaining <= 0) {
+                continue;
+            }
 
             UserMembership membership = membershipRepository.findByUserIdForUpdate(tx.getUserId()).orElse(null);
             if (membership == null || membership.getTotalPoints() <= 0) {
                 continue;
             }
 
-            int deduct = Math.min(tx.getPoints(), membership.getTotalPoints());
+            int deduct = Math.min(remaining, membership.getTotalPoints());
             if (deduct <= 0) {
                 continue;
             }

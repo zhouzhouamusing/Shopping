@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
@@ -17,4 +18,9 @@ public interface PointsCouponRepository extends JpaRepository<PointsCoupon, Long
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT pc FROM PointsCoupon pc WHERE pc.id = :id")
     Optional<PointsCoupon> findByIdForUpdate(Long id);
+
+    @Modifying
+    @Query("UPDATE PointsCoupon pc SET pc.remainingStock = pc.remainingStock - 1 " +
+            "WHERE pc.id = :id AND pc.remainingStock > 0")
+    int decrementStock(Long id);
 }

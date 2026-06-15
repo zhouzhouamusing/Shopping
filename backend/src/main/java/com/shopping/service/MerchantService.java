@@ -3,8 +3,10 @@ package com.shopping.service;
 import com.shopping.dto.ProductRequest;
 import com.shopping.dto.Result;
 import com.shopping.entity.Order;
+import com.shopping.entity.OrderItem;
 import com.shopping.entity.Product;
 import com.shopping.entity.Review;
+import com.shopping.repository.OrderItemRepository;
 import com.shopping.repository.OrderRepository;
 import com.shopping.repository.ProductRepository;
 import com.shopping.repository.ReviewRepository;
@@ -13,8 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -23,6 +25,7 @@ public class MerchantService {
 
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ReviewRepository reviewRepository;
 
     public Result<Map<String, Object>> getDashboard(Long merchantId) {
@@ -114,6 +117,34 @@ public class MerchantService {
         }
         review.setAdminReply(reply);
         reviewRepository.save(review);
+        return Result.success();
+    }
+
+    public Result<Void> verifyAndDeliverOrder(Long merchantId, String orderNo) {
+        Order order = orderRepository.findByOrderNo(orderNo).orElse(null);
+        if (order == null) {
+            return Result.error(404, "订单不存在");
+        }
+        if (order.getStatus() != 1) {
+            return Result.error(400, "只能对已付款订单发货");
+        }
+
+        List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+        boolean hasOwnProduct = false;
+        for (OrderItem item : items) {
+            Product product = productRepository.findById(item.getProductId()).orElse(null);
+            if (product != null && merchantId.equals(product.getMerchantId())) {
+                hasOwnProduct = true;
+                break;
+            }
+        }
+        if (!hasOwnProduct) {
+            return Result.error(403, "该订单不包含您的商品，无权发货");
+        }
+
+        order.setStatus(2);
+        order.setDeliveryTime(java.time.LocalDateTime.now());
+        orderRepository.save(order);
         return Result.success();
     }
 }

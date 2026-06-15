@@ -32,7 +32,8 @@ public class FileUploadController {
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     @PostMapping
-    public Result<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    public Result<String> uploadFile(@RequestParam("file") MultipartFile file,
+                                     @RequestParam(value = "type", defaultValue = "products") String type) {
         if (file.isEmpty()) {
             return Result.error(400, "文件不能为空");
         }
@@ -43,6 +44,13 @@ public class FileUploadController {
             return Result.error(400, "仅支持 JPG/PNG/GIF/WebP 格式");
         }
 
+        String subDir = switch (type) {
+            case "reviews" -> "reviews";
+            case "products" -> "products";
+            case "shops" -> "shops";
+            default -> "products";
+        };
+
         try {
             String originalFilename = file.getOriginalFilename();
             String ext = "";
@@ -51,13 +59,13 @@ public class FileUploadController {
             }
             String newFilename = UUID.randomUUID().toString().replace("-", "") + ext;
 
-            Path uploadPath = Paths.get(uploadDir, "reviews");
+            Path uploadPath = Paths.get(uploadDir, subDir);
             Files.createDirectories(uploadPath);
 
             Path filePath = uploadPath.resolve(newFilename);
             file.transferTo(filePath.toFile());
 
-            String url = "/uploads/reviews/" + newFilename;
+            String url = "/uploads/" + subDir + "/" + newFilename;
             return Result.success(url);
         } catch (IOException e) {
             log.error("文件上传失败", e);

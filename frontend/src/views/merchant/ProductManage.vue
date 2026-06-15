@@ -79,8 +79,19 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="主图URL">
-          <el-input v-model="form.mainImage" placeholder="输入图片URL" />
+        <el-form-item label="主图">
+          <el-upload
+            class="image-uploader"
+            action="/api/upload?type=products"
+            :headers="{ Authorization: 'Bearer ' + token }"
+            :show-file-list="false"
+            :on-success="handleUploadSuccess"
+            accept="image/*"
+          >
+            <img v-if="form.mainImage" :src="form.mainImage" class="uploaded-image" />
+            <el-icon v-else class="uploader-icon"><Plus /></el-icon>
+          </el-upload>
+          <el-input v-model="form.mainImage" placeholder="或手动输入图片URL" style="margin-top: 8px;" />
         </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" active-text="上架" inactive-text="下架" />
@@ -98,6 +109,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/utils/api'
+
+const token = localStorage.getItem('token') || ''
 
 const products = ref([])
 const categories = ref([])
@@ -194,6 +207,15 @@ const handleSubmit = async () => {
   }
 }
 
+const handleUploadSuccess = (response) => {
+  if (response.code === 200) {
+    form.mainImage = response.data
+    ElMessage.success('图片上传成功')
+  } else {
+    ElMessage.error(response.message || '上传失败')
+  }
+}
+
 const handleDelete = (row) => {
   ElMessageBox.confirm(`确定删除商品"${row.name}"？`, '提示', { type: 'warning' })
     .then(async () => {
@@ -228,5 +250,34 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+.image-uploader {
+  :deep(.el-upload) {
+    border: 1px dashed #d9d9d9;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+}
+
+.uploaded-image {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+}
+
+.uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
 }
 </style>

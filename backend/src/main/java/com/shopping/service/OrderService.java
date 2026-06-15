@@ -368,7 +368,7 @@ public class OrderService {
     public void restoreStock(Long orderId) {
         List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
         for (OrderItem item : items) {
-            Product product = productRepository.findById(item.getProductId()).orElse(null);
+            Product product = productRepository.findByIdForUpdate(item.getProductId()).orElse(null);
             if (product != null) {
                 product.setStock(product.getStock() + item.getQuantity());
                 product.setSales(Math.max(0, product.getSales() - item.getQuantity()));

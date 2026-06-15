@@ -7,7 +7,6 @@ import com.shopping.entity.Order;
 import com.shopping.entity.Product;
 import com.shopping.entity.Review;
 import com.shopping.service.MerchantService;
-import com.shopping.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,7 +21,6 @@ import java.util.Map;
 public class MerchantController {
 
     private final MerchantService merchantService;
-    private final OrderService orderService;
 
     @GetMapping("/dashboard")
     public Result<Map<String, Object>> getDashboard(Authentication authentication) {
@@ -72,7 +70,8 @@ public class MerchantController {
     @PutMapping("/orders/{orderNo}/deliver")
     public Result<Void> deliverOrder(Authentication authentication,
                                       @PathVariable String orderNo) {
-        return orderService.deliverOrder(orderNo);
+        Long merchantId = (Long) authentication.getPrincipal();
+        return merchantService.verifyAndDeliverOrder(merchantId, orderNo);
     }
 
     @GetMapping("/reviews")
